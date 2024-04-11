@@ -61,13 +61,21 @@ Python and Python ecosystem
 
 1. Python language and standard lib
 2. Python desktop UI frameworks (`tkinter` and then migrating to `PySide6`)
-3. Python testing frameworks (standard `unittest`, migrating Ward and GUI testing framework)
+	* `tkinter` because it's part of certification requirements
+	* `PySide6` because I think QT is more advanced and I could use it for personal project and this package because it's the most up to date
+3. Python testing frameworks (standard `unittest`, migrating `Ward` and GUI testing framework)
+	* interrested in `Ward` as a different approach to testing syntax
+	* curious of how to handle migration
 4. Python web framework (`Flask`) exploration and practice
+	* popular
+	* I like it's advertised as lightweigth
 5. Pythonic and clean programming
 6. Documentation with [Sphinx](https://www.sphinx-doc.org/en/master/)
 	* THE doc tool for Python
 	* I want to experiment with [reStructuredText](https://docutils.sourceforge.io/rst.html)
 7. Pythonic SQL with [sqlite3](https://docs.python.org/3/library/sqlite3.html)
+	* curious of the pythonic way for SQL
+	* every backend app does SQL
 
 New technology exploration
 --------------------------

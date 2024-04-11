@@ -143,6 +143,8 @@ This project is an opportunity to experiment with a new tool: [linear](https://l
 
 It appears to have (to confirm with practice):
 
+* a full keyboard user interface
+* concepts different from Jira for project management (circle?)
 * integration with Github for issue workflow
 * a roadmap feature to draw and track the project's steps and milestones
 * free usage

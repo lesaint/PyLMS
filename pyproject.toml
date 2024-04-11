@@ -1,0 +1,7 @@
+[project]
+name = "PyLMS"
+dynamic = ["version", "description", "dependencies", "scripts", "readme", "authors", "keywords", "urls"]
+
+[build-system]
+requires = ["setuptools>40.8.0", "wheel"]
+build-backend = "setuptools.build_meta"

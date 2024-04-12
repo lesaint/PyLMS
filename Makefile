@@ -1,3 +1,6 @@
+format:
+	python3 -m black src/
+
 build:
 	python3 -m pip install --upgrade setuptools wheel build
 	python3 -m build

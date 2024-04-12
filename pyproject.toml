@@ -2,6 +2,12 @@
 name = "PyLMS"
 dynamic = ["version", "description", "dependencies", "scripts", "readme", "authors", "keywords", "urls"]
 
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "coverage"
+]
+
 [build-system]
 requires = ["setuptools>40.8.0", "wheel"]
 build-backend = "setuptools.build_meta"
@@ -9,3 +15,15 @@ build-backend = "setuptools.build_meta"
 [tool.black]
 line-length = 120
 target-version = ['py311']
+
+[tool.coverage.run]
+source = [
+    "pylms",
+]
+
+[tool.coverage.path]
+source = [
+    "src/pylms",
+    "**/site-packages/pylms",
+]
+

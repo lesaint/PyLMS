@@ -1,5 +1,6 @@
 #!/bin/env python3
 
+
 def main() -> None:
     print("Hello world!")
 

@@ -9,7 +9,7 @@ format:
 	python3 -m black src/
 
 test:
-	coverage run -m pytest
+	coverage run --branch -m pytest
 	coverage report --fail-under=75
 
 venv: 

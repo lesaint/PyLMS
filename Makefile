@@ -12,7 +12,7 @@ test:
 	coverage run -m pytest
 	coverage report --fail-under=75
 
-venv: .venv
+venv: 
 	python3 -m venv .venv
 	@echo "Now run source .venv/bin/activate"
 

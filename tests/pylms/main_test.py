@@ -36,64 +36,52 @@ def mock_argv(arguments_list):
 
 
 @patch("builtins.print")
-@patch("pylms.__main__.read_persons")
-def test_main_no_argument_and_no_persons(mock_read_persons, mock_print, no_arguments):
-    mock_read_persons.return_value = []
+@patch("pylms.__main__.store_person")
+@patch("pylms.__main__.list_persons")
+def test_main_no_argument(mock_list_persons, mock_store_person, mock_print, no_arguments):
     with mock_argv(no_arguments):
         __main__.main()
-        mock_print.assert_called_with("No Person registered yet.")
-        assert mock_print.call_count == 1
+
+        mock_list_persons.assert_called_with()
+        assert mock_list_persons.call_count == 1
+        assert mock_store_person.call_count == 0
+        assert mock_print.call_count == 0
 
 
 @patch("builtins.print")
-@patch("pylms.__main__.read_persons")
-def test_main_no_argument_and_one_person(mock_read_persons, mock_print, no_arguments):
-    mock_read_persons.return_value = [("Sebastien", "Lesaint")]
-    with mock_argv(no_arguments):
-        __main__.main()
-        mock_print.assert_called_with("*", "Sebastien", "Lesaint")
-        assert mock_print.call_count == 1
-
-
-@patch("builtins.print")
-@patch("pylms.__main__.read_persons")
-def test_main_no_argument_and_person_no_lastname(mock_read_persons, mock_print, no_arguments):
-    mock_read_persons.return_value = [("Bob",)]
-    with mock_argv(no_arguments):
-        __main__.main()
-        mock_print.assert_called_with("*", "Bob", None)
-        assert mock_print.call_count == 1
-
-
-@patch("builtins.print")
-@patch("pylms.__main__.read_persons")
-def test_main_no_argument_and_two_persons(mock_read_persons, mock_print, no_arguments):
-    mock_read_persons.return_value = [("Sebastien", "Lesaint"), ("Bernard", "Tapie")]
-    with mock_argv(no_arguments):
-        __main__.main()
-        mock_print.assert_has_calls([call("*", "Sebastien", "Lesaint"), call("*", "Bernard", "Tapie")])
-        assert mock_print.call_count == 2
-
-
-@patch("builtins.print")
-def test_main_one_argument(mock_print, one_argument):
+@patch("pylms.__main__.store_person")
+@patch("pylms.__main__.list_persons")
+def test_main_one_argument(mock_list_persons, mock_store_person, mock_print, one_argument):
     with mock_argv(one_argument):
         __main__.main()
-        mock_print.assert_called_with(f"Create Person {one_argument[0]}.")
-        assert mock_print.call_count == 1
+
+        mock_store_person.assert_called_with(firstname=one_argument[0])
+        assert mock_store_person.call_count == 1
+        assert mock_list_persons.call_count == 0
+        assert mock_print.call_count == 0
 
 
 @patch("builtins.print")
-def test_main_two_arguments(mock_print, two_arguments):
+@patch("pylms.__main__.store_person")
+@patch("pylms.__main__.list_persons")
+def test_main_two_arguments(mock_list_persons, mock_store_person, mock_print, two_arguments):
     with mock_argv(two_arguments):
         __main__.main()
-        mock_print.assert_called_with(f"Create Person {two_arguments[0]} {two_arguments[1]}.")
-        assert mock_print.call_count == 1
+
+        mock_store_person.assert_called_with(firstname=two_arguments[0], lastname=two_arguments[1])
+        assert mock_store_person.call_count == 1
+        assert mock_list_persons.call_count == 0
+        assert mock_print.call_count == 0
 
 
 @patch("builtins.print")
-def test_main_three_arguments(mock_print, more_than_two_arguments):
+@patch("pylms.__main__.store_person")
+@patch("pylms.__main__.list_persons")
+def test_main_three_arguments(mock_list_persons, mock_store_person, mock_print, more_than_two_arguments):
     with mock_argv(more_than_two_arguments):
         __main__.main()
+
         mock_print.assert_called_with(f"Too many arguments ({len(more_than_two_arguments)})")
+        assert mock_store_person.call_count == 0
+        assert mock_list_persons.call_count == 0
         assert mock_print.call_count == 1

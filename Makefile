@@ -6,12 +6,12 @@ check-format:
 	python3 -m black --check src/
 
 format:
-	python3 -m black src/
+	python3 -m black src/ tests/
 
 test:
 	coverage run --branch -m pytest
 	coverage report --fail-under=75
-
+	
 venv: 
 	python3 -m venv .venv
 	@echo "Now run source .venv/bin/activate"

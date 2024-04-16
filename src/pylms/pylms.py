@@ -1,5 +1,5 @@
 from pylms import storage
-from pylms.core import Person
+from pylms.core import Person, PersonIdGenerator
 
 
 def list_persons() -> None:
@@ -13,13 +13,15 @@ def list_persons() -> None:
 
 def store_person(firstname: str) -> None:
     persons = storage.read_persons()
-    person = Person(firstname=firstname)
+    id_generator = PersonIdGenerator(persons)
+    person = Person(person_id=id_generator.next_person_id(), firstname=firstname)
     print(f"Create Person {person}.")
     storage.store_persons([person] + persons)
 
 
 def store_person(firstname: str, lastname: str = None) -> None:
     persons = storage.read_persons()
-    person = Person(firstname=firstname, lastname=lastname)
+    id_generator = PersonIdGenerator(persons)
+    person = Person(person_id=id_generator.next_person_id(), firstname=firstname, lastname=lastname)
     print(f"Create Person {person}.")
     storage.store_persons([person] + persons)

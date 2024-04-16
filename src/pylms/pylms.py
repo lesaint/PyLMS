@@ -5,7 +5,7 @@ from pylms.core import Person, PersonIdGenerator
 def list_persons() -> None:
     persons = storage.read_persons()
     if persons:
-        for person in persons:
+        for person in sorted(persons, key=lambda p: p.person_id):
             created = person.created
             print(
                 f"({person.person_id})",

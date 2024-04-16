@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 from pathlib import Path
 from pylms.core import Person
@@ -9,21 +10,24 @@ class PersonEncoder(json.JSONEncoder):
     def default(self, o: any) -> any:
         if isinstance(o, Person):
             if o.lastname:
-                return {"id": o.person_id, "firstname": o.firstname, "lastname": o.lastname}
-            return {"id": o.person_id, "firstname": o.firstname}
+                return {"id": o.person_id, "firstname": o.firstname, "lastname": o.lastname, "created": str(o.created)}
+            return {"id": o.person_id, "firstname": o.firstname, "created": str(o.created)}
         # Let the base class default method raise the TypeError
         return super().default(o)
 
 
 def to_person(o: dict) -> Person:
-    if "id" not in o:
-        raise ValueError(f"Incompatible storage version: id field does not exist")
     if "firstname" not in o:
         raise ValueError(f"Missing field 'firstname' type(o=={type(o)} o={str(o)}")
 
     if "lastname" in o:
-        return Person(person_id=o["id"], firstname=o["firstname"], lastname=o["lastname"])
-    return Person(person_id=o["id"], firstname=o["firstname"])
+        return Person(
+            person_id=o["id"],
+            firstname=o["firstname"],
+            lastname=o["lastname"],
+            created=datetime.fromisoformat(o["created"]),
+        )
+    return Person(person_id=o["id"], firstname=o["firstname"], created=datetime.fromisoformat(o["created"]))
 
 
 def store_persons(persons: list[Person]) -> None:

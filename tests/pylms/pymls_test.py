@@ -15,7 +15,7 @@ def test_store_person_no_existing_person(mock_store_persons, mock_read_persons, 
 
     mock_read_persons.assert_called_with()
     assert mock_read_persons.call_count == 1
-    mock_store_persons.assert_called_with([Person(firstname=firstname, lastname=lastname)])
+    mock_store_persons.assert_called_with([Person(0, firstname=firstname, lastname=lastname)])
     assert mock_store_persons.call_count == 1
     mock_print.assert_called_with(f"Create Person {firstname} {lastname}.")
     assert mock_print.call_count == 1
@@ -27,7 +27,7 @@ def test_store_person_no_existing_person(mock_store_persons, mock_read_persons, 
 def test_store_person_only_firstname_and_add_to_existing_persons(mock_store_persons, mock_read_persons, mock_print):
     firstname = "Mike"
     lastname = "Jagger"
-    persons = [Person("Richard", "Brownsome")]
+    persons = [Person(7, "Richard", "Brownsome")]
 
     mock_read_persons.return_value = persons
 
@@ -35,7 +35,7 @@ def test_store_person_only_firstname_and_add_to_existing_persons(mock_store_pers
 
     mock_read_persons.assert_called_with()
     assert mock_read_persons.call_count == 1
-    mock_store_persons.assert_called_with([Person(firstname=firstname, lastname=lastname)] + persons)
+    mock_store_persons.assert_called_with([Person(8, firstname=firstname, lastname=lastname)] + persons)
     assert mock_store_persons.call_count == 1
     mock_print.assert_called_with(f"Create Person {firstname} {lastname}.")
     assert mock_print.call_count == 1
@@ -52,7 +52,7 @@ def test_store_person_only_firstname_no_existing_person(mock_store_persons, mock
 
     mock_read_persons.assert_called_with()
     assert mock_read_persons.call_count == 1
-    mock_store_persons.assert_called_with([Person(firstname=firstname)])
+    mock_store_persons.assert_called_with([Person(person_id=0, firstname=firstname)])
     assert mock_store_persons.call_count == 1
     mock_print.assert_called_with(f"Create Person {firstname}.")
     assert mock_print.call_count == 1
@@ -63,7 +63,7 @@ def test_store_person_only_firstname_no_existing_person(mock_store_persons, mock
 @patch("pylms.pylms.storage.store_persons")
 def test_store_person_only_firstname_and_add_to_existing_persons(mock_store_persons, mock_read_persons, mock_print):
     firstname = "John"
-    persons = [Person("Paul", "Valérie")]
+    persons = [Person(2, "Paul", "Valérie")]
 
     mock_read_persons.return_value = persons
 
@@ -71,7 +71,7 @@ def test_store_person_only_firstname_and_add_to_existing_persons(mock_store_pers
 
     mock_read_persons.assert_called_with()
     assert mock_read_persons.call_count == 1
-    mock_store_persons.assert_called_with([Person(firstname=firstname)] + persons)
+    mock_store_persons.assert_called_with([Person(3, firstname=firstname)] + persons)
     assert mock_store_persons.call_count == 1
     mock_print.assert_called_with(f"Create Person {firstname}.")
     assert mock_print.call_count == 1
@@ -96,7 +96,7 @@ def test_list_persons_empty_storage(mock_store_persons, mock_read_persons, mock_
 @patch("pylms.pylms.storage.read_persons")
 @patch("pylms.pylms.storage.store_persons")
 def test_list_persons_non_empty_storage(mock_store_persons, mock_read_persons, mock_print):
-    persons = [Person("Seb", "King"), Person("Mario", "Bros"), Person("Bob")]
+    persons = [Person(1, "Seb", "King"), Person(2, "Mario", "Bros"), Person(3, "Bob")]
 
     mock_read_persons.return_value = persons
 

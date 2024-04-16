@@ -6,7 +6,12 @@ def list_persons() -> None:
     persons = storage.read_persons()
     if persons:
         for person in persons:
-            print("*", person)
+            created = person.created
+            print(
+                f"({person.person_id})",
+                person,
+                f"({created.year}-{created.month}-{created.day} {created.hour}-{created.minute}-{created.second})",
+            )
     else:
         print("No Person registered yet.")
 

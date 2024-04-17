@@ -10,7 +10,7 @@ format:
 
 test:
 	coverage run --branch -m pytest
-	coverage report --fail-under=75
+	coverage report --fail-under=75 -m
 	
 venv: 
 	python3 -m venv .venv

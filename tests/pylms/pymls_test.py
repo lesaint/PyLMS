@@ -1,6 +1,6 @@
 from datetime import datetime
 from pylms.core import Person
-from pylms.pylms import list_persons, store_person
+from pylms.pylms import list_persons, store_person, search_person, update_person
 from unittest.mock import patch, call
 
 
@@ -120,3 +120,78 @@ def test_list_persons_non_empty_storage(mock_store_persons, mock_read_persons, m
         ]
     )
     assert mock_print.call_count == 3
+
+
+@patch("builtins.print")
+@patch("pylms.pylms._search_person")
+def test_search_person_no_result(mock_search_person, mock_print):
+    mock_search_person.return_value = []
+
+    search_person("p")
+
+    mock_search_person.assert_called_once_with("p")
+    assert mock_print.call_count == 0
+
+
+@patch("pylms.pylms._print_person")
+@patch("pylms.pylms._search_person")
+def test_search_person_results(mock_search_person, mock_print_persons):
+    persons = [
+        Person(3, "Bob"),
+        Person(1, "Seb"),
+        Person(2, "MarioEb"),
+    ]
+    mock_search_person.return_value = persons
+
+    search_person("p")
+
+    mock_search_person.assert_called_once_with("p")
+    assert mock_print_persons.call_count == 3
+    mock_print_persons.assert_has_calls([call(person) for person in persons])
+
+
+@patch("pylms.pylms.storage")
+@patch("pylms.pylms._interactive_select_person")
+def test_update_no_person_selected(mock_select, mock_storage):
+    mock_select.return_value = None
+
+    update_person("p")
+
+    mock_select.assert_called_once_with("p")
+    assert mock_storage.store_persons.call_count == 0
+
+
+@patch("pylms.pylms.storage")
+@patch("pylms.pylms._interactive_person_details")
+@patch("pylms.pylms._interactive_select_person")
+def test_update_single_person(mock_select, mock_person_details, mock_storage):
+    person = Person(1, "foo", "bar")
+    mock_select.return_value = person
+    mock_person_details.return_value = ("donut", "acme")
+    mock_storage.read_persons.return_value = [person]
+
+    update_person("p")
+
+    mock_select.assert_called_once_with("p")
+    assert mock_storage.read_persons.call_count == 1
+    assert mock_storage.store_persons.call_count == 1
+    mock_storage.store_persons.assert_called_once_with([Person(1, "donut", "acme")])
+
+
+@patch("pylms.pylms.storage")
+@patch("pylms.pylms._interactive_person_details")
+@patch("pylms.pylms._interactive_select_person")
+def test_update_person_out_of_several(mock_select, mock_person_details, mock_storage):
+    person1 = Person(1, "foo", "bar")
+    person2 = Person(2, "foo", "bar")
+    person3 = Person(3, "foo", "bar")
+    mock_select.return_value = person2
+    mock_person_details.return_value = ("donut", "acme")
+    mock_storage.read_persons.return_value = [person3, person1, person2]
+
+    update_person("p")
+
+    mock_select.assert_called_once_with("p")
+    assert mock_storage.read_persons.call_count == 1
+    assert mock_storage.store_persons.call_count == 1
+    mock_storage.store_persons.assert_called_once_with([person3, person1, Person(2, "donut", "acme")])

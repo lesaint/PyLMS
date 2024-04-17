@@ -85,7 +85,7 @@ def test_interactive_select_person_several_matches(
     assert mock_print.call_count == 2
     mock_print.assert_has_calls([call("Input id of person to update:"), call("CTRL+C to exit")])
     assert mock_print_person.call_count == 2
-    mock_print_person.assert_has_calls([call(persons[0]), call(persons[1])])
+    mock_print_person.assert_has_calls([call(persons[1]), call(persons[0])])
     assert mock_interactive_person_id.call_count == 1
     mock_interactive_person_id.assert_called_once_with([3, 1])
 

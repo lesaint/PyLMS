@@ -47,7 +47,7 @@ def _interactive_select_person(pattern: str) -> Person | None:
         return persons[0]
 
     print("Input id of person to update:")
-    for person in persons:
+    for person in sorted(persons, key=lambda p: p.person_id):
         _print_person(person)
     print("CTRL+C to exit")
 

@@ -2,6 +2,17 @@ from pylms import storage
 from pylms.core import Person, PersonIdGenerator
 
 
+class ExitPyLMS(BaseException):
+    pass
+
+
+def _input_or_exit_pylms():
+    try:
+        return input()
+    except KeyboardInterrupt:
+        raise ExitPyLMS()
+
+
 def list_persons() -> None:
     persons = storage.read_persons()
     if persons:
@@ -25,7 +36,8 @@ def _interactive_person_id(valid_ids: list[int]) -> int:
         raise ValueError("valid_ids can not be empty.")
 
     while True:
-        n = input()
+        n = _input_or_exit_pylms()
+
         try:
             res = int(n)
             if res not in valid_ids:
@@ -62,7 +74,7 @@ def _interactive_select_person(pattern: str) -> Person | None:
 
 def _interactive_person_details() -> tuple[str, str | None]:
     while True:
-        text = input()
+        text = _input_or_exit_pylms()
 
         words = text.split(" ")
         if len(words) > 2:
@@ -137,7 +149,7 @@ def store_person(firstname: str, lastname: str = None) -> None:
 
 def _interactive_hit_enter():
     while True:
-        s = input()
+        s = _input_or_exit_pylms()
 
         if len(s) == 0:
             return

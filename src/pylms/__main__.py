@@ -1,10 +1,17 @@
 #!/bin/env python3
 
 from sys import argv
-from pylms.pylms import list_persons, store_person, update_person, delete_person
+from pylms.pylms import list_persons, store_person, update_person, delete_person, ExitPyLMS
 
 
 def main() -> None:
+    try:
+        _read_and_execute_commands()
+    except ExitPyLMS:
+        pass
+
+
+def _read_and_execute_commands():
     argv_length = len(argv)
 
     if argv_length == 1:

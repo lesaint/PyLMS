@@ -133,3 +133,30 @@ def store_person(firstname: str, lastname: str = None) -> None:
     person = Person(person_id=id_generator.next_person_id(), firstname=firstname, lastname=lastname)
     print(f"Create Person {person}.")
     storage.store_persons([person] + persons)
+
+
+def _interactive_hit_enter():
+    while True:
+        s = input()
+
+        if len(s) == 0:
+            return
+
+        print("Just hit ENTER")
+        continue
+
+
+def delete_person(pattern: str) -> None:
+    person_to_delete: Person = _interactive_select_person(pattern)
+    if not person_to_delete:
+        return
+
+    print("Hit ENTER to delete:")
+    _print_person(person_to_delete)
+    print("CTRL+C to exit")
+
+    _interactive_hit_enter()
+
+    persons = storage.read_persons()
+    persons.remove(person_to_delete)
+    storage.store_persons(persons)

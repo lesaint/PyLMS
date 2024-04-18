@@ -1,6 +1,6 @@
 from datetime import datetime
 from pylms.core import Person
-from pylms.pylms import list_persons, store_person, search_person, update_person
+from pylms.pylms import list_persons, store_person, search_person, update_person, delete_person
 from unittest.mock import patch, call
 
 
@@ -195,3 +195,49 @@ def test_update_person_out_of_several(mock_select, mock_person_details, mock_sto
     assert mock_storage.read_persons.call_count == 1
     assert mock_storage.store_persons.call_count == 1
     mock_storage.store_persons.assert_called_once_with([person3, person1, Person(2, "donut", "acme")])
+
+
+@patch("builtins.print")
+@patch("pylms.pylms.storage")
+@patch("pylms.pylms._interactive_hit_enter")
+@patch("pylms.pylms._print_person")
+@patch("pylms.pylms._interactive_select_person")
+def test_delete_person(mock_select, mock_print_person, mock_hit_enter, mock_storage, mock_print):
+    person1 = Person(1, "foo", "bar")
+    person2 = Person(2, "foo", "bar")
+    person3 = Person(3, "foo", "bar")
+    mock_select.return_value = person3
+    mock_storage.read_persons.return_value = [person3, person2, person1]
+
+    delete_person("p")
+
+    mock_select.assert_called_once_with("p")
+    assert mock_select.call_count == 1
+    mock_print.assert_has_calls([call("Hit ENTER to delete:"), call("CTRL+C to exit")])
+    assert mock_print.call_count == 2
+    mock_print_person.assert_called_once_with(person3)
+    assert mock_print_person.call_count == 1
+    mock_hit_enter.assert_called_once_with()
+    assert mock_hit_enter.call_count == 1
+    mock_storage.read_persons.assert_called_once_with()
+    assert mock_storage.read_persons.call_count == 1
+    mock_storage.store_persons.assert_called_once_with([person2, person1])
+    assert mock_storage.store_persons.call_count == 1
+
+
+@patch("builtins.print")
+@patch("pylms.pylms.storage")
+@patch("pylms.pylms._interactive_hit_enter")
+@patch("pylms.pylms._print_person")
+@patch("pylms.pylms._interactive_select_person")
+def test_delete_person(mock_select, mock_print_person, mock_hit_enter, mock_storage, mock_print):
+    mock_select.return_value = None
+
+    delete_person("p")
+
+    mock_select.assert_called_once_with("p")
+    assert mock_select.call_count == 1
+    assert mock_print_person.call_count == 0
+    assert mock_hit_enter.call_count == 0
+    assert mock_storage.call_count == 0
+    assert mock_print.call_count == 0

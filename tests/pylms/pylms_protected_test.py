@@ -1,5 +1,5 @@
 from pylms.core import Person
-from pylms.pylms import _search_person, _interactive_person_id, _interactive_select_person
+from pylms.pylms import _search_person, _interactive_person_id, _interactive_select_person, _interactive_hit_enter
 from pytest import raises, mark
 from unittest.mock import patch, call
 
@@ -27,7 +27,7 @@ def test_interactive_person_id_sanity_check():
 
 @patch("builtins.input")
 @mark.parametrize("valid_ids", [[1], [2, 1], [23, 7, 1, 2]])
-def test_interactive_person_straight_correct_input(mock_input, valid_ids):
+def test_interactive_person_id_straight_correct_input(mock_input, valid_ids):
     mock_input.return_value = "1"
 
     res = _interactive_person_id([2, 1])
@@ -105,3 +105,23 @@ def test_interactive_raise_runtime_error_if_interactive_person_id_returns_crap(
 
     with raises(RuntimeError, match="id 123 does not exist in list of Persons"):
         _interactive_select_person("p")
+
+
+@patch("builtins.input")
+def test_interactive_hit_enter_straight_correct_input(mock_input):
+    mock_input.return_value = ""
+
+    _interactive_hit_enter()
+
+    mock_input.assert_called_once_with()
+    assert mock_input.call_count == 1
+
+
+@patch("builtins.input")
+def test_interactive_hit_enter_incorrect_inputs(mock_input):
+    mock_input.side_effect = ["q", "12", "ENTER", ""]
+
+    _interactive_hit_enter()
+
+    mock_input.assert_has_calls([call(), call(), call(), call()])
+    assert mock_input.call_count == 4

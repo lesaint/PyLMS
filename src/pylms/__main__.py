@@ -1,7 +1,7 @@
 #!/bin/env python3
 
 from sys import argv
-from pylms.pylms import list_persons, store_person, update_person
+from pylms.pylms import list_persons, store_person, update_person, delete_person
 
 
 def main() -> None:
@@ -15,14 +15,18 @@ def main() -> None:
         _command_update(argv_length)
         return
 
+    if argv[1].lower() == "delete":
+        _command_delete(argv_length)
+        return
+
     _command_create(argv_length)
 
 
-def _command_list():
+def _command_list() -> None:
     list_persons()
 
 
-def _command_create(argv_length):
+def _command_create(argv_length: int) -> None:
     if argv_length > 3:
         print(f"Too many arguments ({argv_length - 1})")
         return
@@ -33,13 +37,24 @@ def _command_create(argv_length):
         store_person(firstname=argv[1], lastname=argv[2])
 
 
-def _command_update(argv_length):
+def _command_update(argv_length: int) -> None:
     if argv_length > 3:
         print(f"Too many arguments ({argv_length - 1})")
         return
 
     if argv_length == 3:
         update_person(pattern=argv[2])
+    else:
+        print(f"Missing search pattern")
+
+
+def _command_delete(argv_length: int) -> None:
+    if argv_length > 3:
+        print(f"Too many arguments ({argv_length - 1})")
+        return
+
+    if argv_length == 3:
+        delete_person(pattern=argv[2])
     else:
         print(f"Missing search pattern")
 

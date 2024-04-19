@@ -46,3 +46,63 @@ class PersonIdGenerator:
         res = self.next_id
         self.next_id += 1
         return res
+
+
+class RelationshipDefinition:
+    def __init__(self, name: str, aliases: list[str] = None) -> None:
+        self._name: str = name
+        self._aliases: list[str] = [] if aliases is None else aliases[:]
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def aliases(self) -> list[str]:
+        return self._aliases
+
+    def __repr__(self) -> str:
+        return self._name
+
+
+parent_enfant = RelationshipDefinition(
+    name="Parent/Enfant",
+    aliases=[
+        "père de",
+        "mère de",
+        "fils de",
+        "fille de",
+        "parent de",
+        "enfant de",
+    ],
+)
+
+relationship_definitions = [
+    parent_enfant,
+]
+
+
+class Relationship:
+    def __init__(self, person_left: Person, person_right: Person, definition: RelationshipDefinition) -> None:
+        self._person_left: Person = person_left
+        self._person_right: Person = person_right
+        self._definition: RelationshipDefinition = definition
+
+    @property
+    def left(self) -> Person:
+        return self._person_left
+
+    @property
+    def right(self) -> Person:
+        return self._person_right
+
+    def applies_to(self, person: Person) -> bool:
+        return self._person_left == person or self._person_right == person
+
+    @property
+    def definition(self):
+        return self._definition
+
+
+def resolve_persons(persons: list[Person], relationships: list[Relationship]) -> list[(Person, list[Relationship])]:
+    return [(person, list(filter(lambda r: r.applies_to(person), relationships))) for person in persons]

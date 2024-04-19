@@ -1,5 +1,7 @@
 from pylms import storage
 from pylms.core import Person, PersonIdGenerator
+from pylms.core import relationship_definitions, RelationshipDefinition, Relationship
+from pylms.core import resolve_persons
 
 
 class ExitPyLMS(BaseException):
@@ -16,8 +18,14 @@ def _input_or_exit_pylms():
 def list_persons() -> None:
     persons = storage.read_persons()
     if persons:
-        for person in sorted(persons, key=lambda p: p.person_id):
+        relationships = storage.read_relationships(persons)
+        resolved_persons = resolve_persons(persons, relationships)
+
+        for person, rs in sorted(resolved_persons, key=lambda t: t[0].person_id):
             _print_person(person)
+            for r in rs:
+                other = r.right if r.left == person else r.left
+                print(f"    -> {r.definition.name} de ({other.person_id}) {other}")
     else:
         print("No Person registered yet.")
 
@@ -172,3 +180,79 @@ def delete_person(pattern: str) -> None:
     persons = storage.read_persons()
     persons.remove(person_to_delete)
     storage.store_persons(persons)
+
+
+class LinkRequest:
+    def __init__(
+        self, *, left_person_pattern: str, right_person_pattern: str, definition: RelationshipDefinition, alias: str
+    ) -> None:
+        self.left_person_pattern: str = left_person_pattern
+        self.right_person_pattern: str = right_person_pattern
+        self.definition: RelationshipDefinition = definition
+        self.alias: str = alias
+
+
+def _find_relation_ship(natural_language_link_order: str) -> tuple[RelationshipDefinition, str] | None:
+    if len(natural_language_link_order) == 0:
+        return None
+
+    natural_language_link_order = natural_language_link_order.lower()
+
+    for rl in relationship_definitions:
+        for alias in rl.aliases:
+            if alias.lower() in natural_language_link_order:
+                return rl, alias
+
+    return None
+
+
+def _parse_nl_link_request(natural_language_link_request: str) -> LinkRequest | None:
+    match = _find_relation_ship(natural_language_link_request)
+    if match is None:
+        return None
+    definition, alias = match
+
+    person_patterns = list(filter(lambda s: len(s) > 0, map(str.strip, natural_language_link_request.split(alias))))
+    patterns_count = len(person_patterns)
+    if patterns_count != 2:
+        print(f"Unsupported link request: wrong number of person patterns ({patterns_count})")
+        return None
+
+    return LinkRequest(
+        left_person_pattern=person_patterns[0],
+        right_person_pattern=person_patterns[1],
+        definition=definition,
+        alias=alias,
+    )
+
+
+def link_persons(natural_language_link_request: str) -> None:
+    link_request = _parse_nl_link_request(natural_language_link_request)
+    if link_request is None:
+        return
+
+    person_left = _interactive_select_person(link_request.left_person_pattern)
+    person_right = _interactive_select_person(link_request.right_person_pattern)
+
+    if person_left is None:
+        print(f'No match for "{link_request.left_person_pattern}".')
+    if person_right is None:
+        print(f'No match for "{link_request.right_person_pattern}".')
+    if person_left is None or person_right is None:
+        return
+
+    print(f'Hit ENTER to link as "{link_request.definition.name}":')
+    _print_person(person_left)
+    _print_person(person_right)
+    print("CTRL+C to exit")
+
+    _interactive_hit_enter()
+
+    persons = storage.read_persons()
+    relationships = storage.read_relationships(persons)
+    relationship = Relationship(
+        person_left=person_left,
+        person_right=person_right,
+        definition=link_request.definition,
+    )
+    storage.store_relationships(relationships + [relationship])

@@ -128,8 +128,10 @@ class Test_interactive_hit_enter:
         assert mock_input.call_count == 4
 
 
-relationship_definition_1 = RelationshipDefinition(name="foo", aliases=["aaa", "bbb", "ccc"])
-relationship_definition_2 = RelationshipDefinition(name="bar", aliases=["11", "22", "33"])
+relationship_definition_1 = RelationshipDefinition(
+    name="foo", aliases=["aaa", "bbb", "ccc"], person_left_repr="leftFoo", person_right_repr="rightFoo"
+)
+relationship_definition_2 = RelationshipDefinition(name="bar", aliases=["11", "22", "33"], person_left_repr="leftBar")
 relationship_definition_3 = RelationshipDefinition(name="acme", aliases=["a2", "b3", "c4"])
 
 

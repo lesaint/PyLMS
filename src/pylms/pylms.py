@@ -25,7 +25,7 @@ def list_persons() -> None:
             _print_person(person)
             for r in rs:
                 other = r.right if r.left == person else r.left
-                print(f"    -> {r.definition.name} de ({other.person_id}) {other}")
+                print(f"    -> {r.repr_for(person)} de ({other.person_id}) {other}")
     else:
         print("No Person registered yet.")
 

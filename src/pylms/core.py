@@ -49,8 +49,16 @@ class PersonIdGenerator:
 
 
 class RelationshipDefinition:
-    def __init__(self, name: str, aliases: list[str] = None) -> None:
+    def __init__(
+        self,
+        name: str,
+        aliases: list[str] = None,
+        person_left_repr: str = None,
+        person_right_repr: str = None,
+    ) -> None:
         self._name: str = name
+        self._person_left_repr: str = name if person_left_repr is None else person_left_repr
+        self._person_right_repr: str = name if person_right_repr is None else person_right_repr
         self._aliases: list[str] = [] if aliases is None else aliases[:]
 
     @property
@@ -60,6 +68,12 @@ class RelationshipDefinition:
     @property
     def aliases(self) -> list[str]:
         return self._aliases
+
+    def left_repr(self, person: Person) -> str:
+        return self._person_left_repr
+
+    def right_repr(self, person: Person) -> str:
+        return self._person_right_repr
 
     def __repr__(self) -> str:
         return self._name
@@ -75,6 +89,8 @@ parent_enfant = RelationshipDefinition(
         "parent de",
         "enfant de",
     ],
+    person_left_repr="parent",
+    person_right_repr="enfant",
 )
 
 relationship_definitions = [
@@ -96,12 +112,19 @@ class Relationship:
     def right(self) -> Person:
         return self._person_right
 
+    @property
+    def definition(self) -> RelationshipDefinition:
+        return self._definition
+
     def applies_to(self, person: Person) -> bool:
         return self._person_left == person or self._person_right == person
 
-    @property
-    def definition(self):
-        return self._definition
+    def repr_for(self, person: Person) -> str:
+        if person == self._person_left:
+            return self._definition.left_repr(person)
+        if person == self._person_right:
+            return self._definition.right_repr(person)
+        raise ValueError(f"{person} is neither the left nor right person of this {self._definition.name} relationship")
 
 
 def resolve_persons(persons: list[Person], relationships: list[Relationship]) -> list[(Person, list[Relationship])]:

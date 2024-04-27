@@ -1,10 +1,12 @@
 #!/bin/env python3
 
+import logging
 from sys import argv
 from pylms.pylms import list_persons, store_person, update_person, delete_person, link_persons, ExitPyLMS
 
 
 def main() -> None:
+    logging.basicConfig(level=logging.INFO)
     try:
         _read_and_execute_commands()
     except ExitPyLMS:

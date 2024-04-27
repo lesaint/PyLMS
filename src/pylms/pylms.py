@@ -3,6 +3,9 @@ from pylms.core import Person, PersonIdGenerator
 from pylms.core import relationship_definitions, RelationshipDefinition, Relationship
 from pylms.core import resolve_persons
 from abc import abstractmethod, ABC
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ExitPyLMS(BaseException):
@@ -170,7 +173,6 @@ def list_persons() -> None:
 def _interactive_select_person(pattern: str) -> Person | None:
     persons = _search_person(pattern)
     if not persons:
-        print("No match.")
         return
 
     if len(persons) == 1:
@@ -279,7 +281,7 @@ def _parse_nl_link_request(natural_language_link_request: str) -> LinkRequest | 
     person_patterns = list(filter(lambda s: len(s) > 0, map(str.strip, natural_language_link_request.split(alias))))
     patterns_count = len(person_patterns)
     if patterns_count != 2:
-        print(f"Unsupported link request: wrong number of person patterns ({patterns_count})")
+        logger.error(f"Unsupported link request: wrong number of person patterns ({patterns_count})")
         return None
 
     return LinkRequest(
@@ -299,9 +301,9 @@ def link_persons(natural_language_link_request: str) -> None:
     person_right = _interactive_select_person(link_request.right_person_pattern)
 
     if person_left is None:
-        print(f'No match for "{link_request.left_person_pattern}".')
+        logger.info(f'No match for "{link_request.left_person_pattern}".')
     if person_right is None:
-        print(f'No match for "{link_request.right_person_pattern}".')
+        logger.info(f'No match for "{link_request.right_person_pattern}".')
     if person_left is None or person_right is None:
         return
 

@@ -93,9 +93,14 @@ parent_enfant = RelationshipDefinition(
     person_right_repr="enfant",
 )
 
-relationship_definitions = [
-    parent_enfant,
-]
+copain_copine = RelationshipDefinition(
+    name="Copain/Copine",
+    aliases=["copain de", "copine de"],
+    person_left_repr="copain",
+    person_right_repr="copain",
+)
+
+relationship_definitions = [parent_enfant, copain_copine]
 
 
 class Relationship:

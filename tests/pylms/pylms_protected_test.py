@@ -95,8 +95,7 @@ class Test_interactive_select_person:
         assert res is None
         mock_search_person.assert_called_once_with("p")
         assert mock_search_person.call_count == 1
-        mock_print.assert_called_once_with("No match.")
-        assert mock_print.call_count == 1
+        assert mock_print.call_count == 0
 
     @patch("builtins.print")
     @patch("pylms.pylms._search_person")

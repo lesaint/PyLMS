@@ -1,9 +1,12 @@
 from pylms.core import Person
 from pylms.core import RelationshipDefinition
-from pylms.pylms import _search_person, _interactive_person_id, _interactive_select_person, _interactive_hit_enter
+from pylms.pylms import CLI
+from pylms.pylms import _search_person, _interactive_select_person
 from pylms.pylms import _parse_nl_link_request
 from pytest import raises, mark
 from unittest.mock import patch, call
+
+under_test = CLI()
 
 
 @patch("pylms.pylms.storage")
@@ -22,18 +25,60 @@ def test_search_person(mock_storage):
     assert _search_person("foo") == []
 
 
+class Test_list_persons:
+
+    @patch("builtins.print")
+    def test_no_persons(self, mock_print):
+        under_test.list_persons([])
+
+        mock_print.assert_called_with("No Person registered yet.")
+        assert mock_print.call_count == 1
+
+    @patch("builtins.print")
+    @patch("pylms.pylms.ios.show_person")
+    def test_one_person_no_relationship(self, mock_show_person, mock_print):
+        person = Person(3, "John", "Doe")
+
+        under_test.list_persons([(person, [])])
+
+        assert mock_show_person.call_count == 1
+        mock_show_person.assert_called_once_with(person)
+        assert mock_print.call_count == 0
+
+    @patch("builtins.print")
+    @patch("pylms.pylms.ios.show_person")
+    def test_persons_no_relationship(self, mock_show_person, mock_print):
+        persons = [
+            Person(3, "Bob"),
+            Person(1, "Seb", "King"),
+            Person(2, "Mario", "Bros"),
+        ]
+
+        under_test.list_persons([(person, []) for person in persons])
+
+        assert mock_show_person.call_count == 3
+        mock_show_person.assert_has_calls(
+            [
+                call(persons[1]),
+                call(persons[2]),
+                call(persons[0]),
+            ]
+        )
+        assert mock_print.call_count == 0
+
+
 class Test_interactive_person_id:
 
     def test_sanity_check(self):
         with raises(ValueError, match="valid_ids can not be empty."):
-            _interactive_person_id([])
+            under_test._interactive_person_id([])
 
     @patch("builtins.input")
     @mark.parametrize("valid_ids", [[1], [2, 1], [23, 7, 1, 2]])
     def test_straight_correct_input(self, mock_input, valid_ids):
         mock_input.return_value = "1"
 
-        res = _interactive_person_id([2, 1])
+        res = under_test._interactive_person_id([2, 1])
 
         assert res == 1
 
@@ -66,45 +111,23 @@ class Test_interactive_select_person:
         assert mock_search_person.call_count == 1
         assert mock_print.call_count == 0
 
-    @patch("builtins.print")
-    @patch("pylms.pylms._interactive_person_id")
-    @patch("pylms.pylms._print_person")
+    @patch("pylms.pylms.ios.select_person")
     @patch("pylms.pylms._search_person")
-    def test_several_matches(self, mock_search_person, mock_print_person, mock_interactive_person_id, mock_print):
+    def test_several_matches(self, mock_search_person, mock_select_person):
         persons = [
             Person(3, "Bob"),
             Person(1, "Seb"),
         ]
         mock_search_person.return_value = persons
-        mock_interactive_person_id.return_value = 3
+        mock_select_person.return_value = persons[0]
 
         res = _interactive_select_person("p")
 
         assert res == persons[0]
         mock_search_person.assert_called_once_with("p")
         assert mock_search_person.call_count == 1
-        assert mock_print.call_count == 2
-        mock_print.assert_has_calls([call("Input id of person to update:"), call("CTRL+C to exit")])
-        assert mock_print_person.call_count == 2
-        mock_print_person.assert_has_calls([call(persons[1]), call(persons[0])])
-        assert mock_interactive_person_id.call_count == 1
-        mock_interactive_person_id.assert_called_once_with([3, 1])
-
-    @patch("builtins.print")
-    @patch("pylms.pylms._interactive_person_id")
-    @patch("pylms.pylms._search_person")
-    def test_interactive_raise_runtime_error_if_interactive_person_id_returns_crap(
-        self, mock_search_person, mock_interactive_person_id, mock_print
-    ):
-        persons = [
-            Person(3, "Bob"),
-            Person(1, "Seb"),
-        ]
-        mock_search_person.return_value = persons
-        mock_interactive_person_id.return_value = 123
-
-        with raises(RuntimeError, match="id 123 does not exist in list of Persons"):
-            _interactive_select_person("p")
+        assert mock_select_person.call_count == 1
+        mock_select_person.assert_called_once_with(persons)
 
 
 class Test_interactive_hit_enter:
@@ -113,7 +136,7 @@ class Test_interactive_hit_enter:
     def test_interactive_hit_enter_straight_correct_input(self, mock_input):
         mock_input.return_value = ""
 
-        _interactive_hit_enter()
+        under_test._interactive_hit_enter()
 
         mock_input.assert_called_once_with()
         assert mock_input.call_count == 1
@@ -122,7 +145,7 @@ class Test_interactive_hit_enter:
     def test_interactive_hit_enter_incorrect_inputs(self, mock_input):
         mock_input.side_effect = ["q", "12", "ENTER", ""]
 
-        _interactive_hit_enter()
+        under_test._interactive_hit_enter()
 
         mock_input.assert_has_calls([call(), call(), call(), call()])
         assert mock_input.call_count == 4

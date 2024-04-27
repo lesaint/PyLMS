@@ -94,7 +94,10 @@ class Test_list_persons:
     @patch("pylms.pylms.storage.read_relationships", return_value=[])
     @patch("pylms.pylms.storage.read_persons")
     def test_persons_but_no_relationships(
-        self, mock_read_persons, mock_read_relationships, mock_list_persons,
+        self,
+        mock_read_persons,
+        mock_read_relationships,
+        mock_list_persons,
     ):
         persons = [
             Person(3, "Bob"),
@@ -108,9 +111,7 @@ class Test_list_persons:
 
         mock_read_persons.assert_called_once_with()
         mock_read_relationships.assert_called_once_with(persons)
-        mock_list_persons.assert_called_once_with(
-            [(person, []) for person in persons]
-        )
+        mock_list_persons.assert_called_once_with([(person, []) for person in persons])
 
 
 class Test_search_person:
@@ -154,33 +155,35 @@ class Test_update_person:
         assert mock_storage.store_persons.call_count == 0
 
     @patch("pylms.pylms.storage")
-    @patch("pylms.pylms.ios.get_person_details")
+    @patch("pylms.pylms.ios.update_person")
     @patch("pylms.pylms._interactive_select_person")
-    def test_single_person(self, mock_select, mock_person_details, mock_storage):
+    def test_single_person(self, mock_select, mock_update_person, mock_storage):
         person = Person(1, "foo", "bar")
         mock_select.return_value = person
-        mock_person_details.return_value = ("donut", "acme")
+        mock_update_person.return_value = Person(234, "donut", "acme")
         mock_storage.read_persons.return_value = [person]
 
         update_person("p")
 
         mock_select.assert_called_once_with("p")
+        mock_update_person.assert_called_once_with(person)
         mock_storage.store_persons.assert_called_once_with([Person(1, "donut", "acme")])
 
     @patch("pylms.pylms.storage")
-    @patch("pylms.pylms.ios.get_person_details")
+    @patch("pylms.pylms.ios.update_person")
     @patch("pylms.pylms._interactive_select_person")
-    def test_out_of_several(self, mock_select, mock_person_details, mock_storage):
+    def test_out_of_several(self, mock_select, mock_update_person, mock_storage):
         person1 = Person(1, "foo", "bar")
         person2 = Person(2, "foo", "bar")
         person3 = Person(3, "foo", "bar")
         mock_select.return_value = person2
-        mock_person_details.return_value = ("donut", "acme")
+        mock_update_person.return_value = Person(888, "donut", "acme")
         mock_storage.read_persons.return_value = [person3, person1, person2]
 
         update_person("p")
 
         mock_select.assert_called_once_with("p")
+        mock_update_person.assert_called_once_with(person2)
         mock_storage.store_persons.assert_called_once_with([person3, person1, Person(2, "donut", "acme")])
 
 

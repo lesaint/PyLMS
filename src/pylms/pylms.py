@@ -2,59 +2,155 @@ from pylms import storage
 from pylms.core import Person, PersonIdGenerator
 from pylms.core import relationship_definitions, RelationshipDefinition, Relationship
 from pylms.core import resolve_persons
+from abc import abstractmethod, ABC
 
 
 class ExitPyLMS(BaseException):
     pass
 
 
-def _input_or_exit_pylms():
-    try:
-        return input()
-    except KeyboardInterrupt:
-        raise ExitPyLMS()
+class IOs(ABC):
+    @abstractmethod
+    def show_person(self, person: Person) -> None:
+        pass
+
+    @abstractmethod
+    def list_persons(self, persons: list[Person]) -> None:
+        pass
+
+    @abstractmethod
+    def select_person(self, persons: list[Person]) -> Person | None:
+        pass
+
+    @abstractmethod
+    def get_person_details(self) -> tuple[str, str | None]:
+        pass
+
+
+class EventListener(ABC):
+    @abstractmethod
+    def creating_person(self, person: Person) -> None:
+        pass
+
+    @abstractmethod
+    def deleting_person(self, person_to_delete: Person) -> None:
+        pass
+
+    @abstractmethod
+    def creating_link(self, rl_definition: RelationshipDefinition, person_left: Person, person_right: Person) -> None:
+        pass
+
+
+class CLI(IOs, EventListener):
+    def creating_person(self, person: Person) -> None:
+        print(f"Create Person {person}.")
+
+    def show_person(self, person: Person) -> None:
+        created = person.created
+        print(
+            f"({person.person_id})",
+            person,
+            f"({created.year}-{created.month}-{created.day} {created.hour}-{created.minute}-{created.second})",
+        )
+
+    def list_persons(self, resolved_persons: list[(Person, list[Relationship])]) -> None:
+        if resolved_persons:
+            for person, rs in sorted(resolved_persons, key=lambda t: t[0].person_id):
+                ios.show_person(person)
+                for r in rs:
+                    other = r.right if r.left == person else r.left
+                    print(f"    -> {r.repr_for(person)} de ({other.person_id}) {other}")
+        else:
+            print("No Person registered yet.")
+
+    def _interactive_hit_enter(self):
+        while True:
+            s = self._input_or_exit_pylms()
+
+            if len(s) == 0:
+                return
+
+            print("Just hit ENTER")
+            continue
+
+    def _input_or_exit_pylms(self):
+        try:
+            return input()
+        except KeyboardInterrupt:
+            raise ExitPyLMS()
+
+    def _interactive_person_id(self, valid_ids: list[int]) -> int:
+        if not valid_ids:
+            raise ValueError("valid_ids can not be empty.")
+
+        while True:
+            n = self._input_or_exit_pylms()
+
+            try:
+                res = int(n)
+                if res not in valid_ids:
+                    print("Not a valid id.")
+                    continue
+
+                return res
+            except ValueError:
+                print("Not an integer.")
+
+    def select_person(self, persons: list[Person]) -> Person | None:
+        print("Input id of person to update:")
+        for person in sorted(persons, key=lambda p: p.person_id):
+            self.show_person(person)
+        print("CTRL+C to exit")
+
+        person_id = self._interactive_person_id([person.person_id for person in persons])
+        for person in persons:
+            if person.person_id == person_id:
+                return person
+
+        # should not happen
+        raise RuntimeError(f"id {person_id} does not exist in list of Persons")
+
+    def get_person_details(self) -> tuple[str, str | None]:
+        while True:
+            text = self._input_or_exit_pylms()
+
+            words = text.split(" ")
+            if len(words) > 2:
+                print("Too many words.")
+                continue
+
+            if len(words) == 1:
+                return words[0], None
+            return words[0], words[1]
+
+    def deleting_person(self, person_to_delete: Person) -> None:
+        print("Hit ENTER to delete:")
+        self.show_person(person_to_delete)
+        print("CTRL+C to exit")
+        self._interactive_hit_enter()
+
+    def creating_link(self, rl_definition: RelationshipDefinition, person_left: Person, person_right: Person) -> None:
+        print(f'Hit ENTER to link as "{rl_definition.name}":')
+        self.show_person(person_left)
+        self.show_person(person_right)
+        print("CTRL+C to exit")
+        self._interactive_hit_enter()
+
+
+_cli: CLI = CLI()
+ios: IOs = _cli
+events: EventListener = _cli
 
 
 def list_persons() -> None:
     persons = storage.read_persons()
+
+    resolved_persons = []
     if persons:
         relationships = storage.read_relationships(persons)
         resolved_persons = resolve_persons(persons, relationships)
 
-        for person, rs in sorted(resolved_persons, key=lambda t: t[0].person_id):
-            _print_person(person)
-            for r in rs:
-                other = r.right if r.left == person else r.left
-                print(f"    -> {r.repr_for(person)} de ({other.person_id}) {other}")
-    else:
-        print("No Person registered yet.")
-
-
-def _print_person(person):
-    created = person.created
-    print(
-        f"({person.person_id})",
-        person,
-        f"({created.year}-{created.month}-{created.day} {created.hour}-{created.minute}-{created.second})",
-    )
-
-
-def _interactive_person_id(valid_ids: list[int]) -> int:
-    if not valid_ids:
-        raise ValueError("valid_ids can not be empty.")
-
-    while True:
-        n = _input_or_exit_pylms()
-
-        try:
-            res = int(n)
-            if res not in valid_ids:
-                print("Not a valid id.")
-                continue
-
-            return res
-        except ValueError:
-            print("Not an integer.")
+    ios.list_persons(resolved_persons)
 
 
 def _interactive_select_person(pattern: str) -> Person | None:
@@ -66,32 +162,7 @@ def _interactive_select_person(pattern: str) -> Person | None:
     if len(persons) == 1:
         return persons[0]
 
-    print("Input id of person to update:")
-    for person in sorted(persons, key=lambda p: p.person_id):
-        _print_person(person)
-    print("CTRL+C to exit")
-
-    person_id = _interactive_person_id([person.person_id for person in persons])
-    for person in persons:
-        if person.person_id == person_id:
-            return person
-
-    # should not happen
-    raise RuntimeError(f"id {person_id} does not exist in list of Persons")
-
-
-def _interactive_person_details() -> tuple[str, str | None]:
-    while True:
-        text = _input_or_exit_pylms()
-
-        words = text.split(" ")
-        if len(words) > 2:
-            print("Too many words.")
-            continue
-
-        if len(words) == 1:
-            return words[0], None
-        return words[0], words[1]
+    return ios.select_person(persons)
 
 
 def update_person(pattern: str) -> None:
@@ -100,12 +171,12 @@ def update_person(pattern: str) -> None:
         return
 
     print("Input new first name and last name to update:")
-    _print_person(person_to_update)
+    ios.show_person(person_to_update)
     print("CTRL+C to exit")
 
     firstname: str
     lastname: str
-    firstname, lastname = _interactive_person_details()
+    firstname, lastname = ios.get_person_details()
 
     persons = storage.read_persons()
     for person in persons:
@@ -117,7 +188,7 @@ def update_person(pattern: str) -> None:
 
 def search_person(pattern: str) -> None:
     for person in _search_person(pattern):
-        _print_person(person)
+        ios.show_person(person)
 
 
 def _search_person(pattern: str) -> list[Person]:
@@ -143,7 +214,7 @@ def store_person(firstname: str) -> None:
     persons = storage.read_persons()
     id_generator = PersonIdGenerator(persons)
     person = Person(person_id=id_generator.next_person_id(), firstname=firstname)
-    print(f"Create Person {person}.")
+    events.creating_person(person)
     storage.store_persons([person] + persons)
 
 
@@ -151,19 +222,8 @@ def store_person(firstname: str, lastname: str = None) -> None:
     persons = storage.read_persons()
     id_generator = PersonIdGenerator(persons)
     person = Person(person_id=id_generator.next_person_id(), firstname=firstname, lastname=lastname)
-    print(f"Create Person {person}.")
+    events.creating_person(person)
     storage.store_persons([person] + persons)
-
-
-def _interactive_hit_enter():
-    while True:
-        s = _input_or_exit_pylms()
-
-        if len(s) == 0:
-            return
-
-        print("Just hit ENTER")
-        continue
 
 
 def delete_person(pattern: str) -> None:
@@ -171,11 +231,7 @@ def delete_person(pattern: str) -> None:
     if not person_to_delete:
         return
 
-    print("Hit ENTER to delete:")
-    _print_person(person_to_delete)
-    print("CTRL+C to exit")
-
-    _interactive_hit_enter()
+    events.deleting_person(person_to_delete)
 
     persons = storage.read_persons()
     persons.remove(person_to_delete)
@@ -241,12 +297,7 @@ def link_persons(natural_language_link_request: str) -> None:
     if person_left is None or person_right is None:
         return
 
-    print(f'Hit ENTER to link as "{link_request.definition.name}":')
-    _print_person(person_left)
-    _print_person(person_right)
-    print("CTRL+C to exit")
-
-    _interactive_hit_enter()
+    events.creating_link(link_request.definition, person_left, person_right)
 
     persons = storage.read_persons()
     relationships = storage.read_relationships(persons)

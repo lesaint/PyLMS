@@ -77,79 +77,68 @@ class Test_store_person:
         assert mock_print.call_count == 1
 
 
-@patch("builtins.print")
-@patch("pylms.pylms.storage.read_persons")
-@patch("pylms.pylms.storage.store_persons")
-def test_list_persons_empty_storage(mock_store_persons, mock_read_persons, mock_print):
-    mock_read_persons.return_value = []
+class Test_list_persons:
+    @patch("pylms.pylms.ios.list_persons")
+    @patch("pylms.pylms.storage.read_relationships")
+    @patch("pylms.pylms.storage.read_persons")
+    def test_empty_storage(self, mock_read_persons, mock_read_relationships, mock_list_persons):
+        mock_read_persons.return_value = []
 
-    list_persons()
+        list_persons()
 
-    mock_read_persons.assert_called_with()
-    assert mock_read_persons.call_count == 1
-    assert mock_store_persons.call_count == 0
-    mock_print.assert_called_with("No Person registered yet.")
-    assert mock_print.call_count == 1
+        mock_read_persons.assert_called_once_with()
+        assert mock_read_relationships.call_count == 0
+        mock_list_persons.assert_called_once_with([])
 
-
-@patch("builtins.print")
-@patch("pylms.pylms.storage.read_relationships", return_value=[])
-@patch("pylms.pylms.storage.read_persons")
-@patch("pylms.pylms.storage.store_persons")
-def test_list_persons_persons_but_no_relationships(
-    mock_store_persons, mock_read_persons, mock_read_relationships, mock_print
-):
-    t1 = datetime(2024, 4, 5, 12, 41, 58)
-    t2 = datetime(2024, 9, 18, 21, 8, 8)
-    persons = [
-        Person(3, "Bob", created=t1),
-        Person(1, "Seb", "King", t1),
-        Person(2, "Mario", "Bros", t2),
-    ]
-
-    mock_read_persons.return_value = persons
-
-    list_persons()
-
-    mock_read_persons.assert_called_with()
-    assert mock_read_persons.call_count == 1
-    assert mock_store_persons.call_count == 0
-    mock_print.assert_has_calls(
-        [
-            call("(1)", persons[1], "(2024-4-5 12-41-58)"),
-            call("(2)", persons[2], "(2024-9-18 21-8-8)"),
-            call("(3)", persons[0], "(2024-4-5 12-41-58)"),
+    @patch("pylms.pylms.ios.list_persons")
+    @patch("pylms.pylms.storage.read_relationships", return_value=[])
+    @patch("pylms.pylms.storage.read_persons")
+    def test_persons_but_no_relationships(
+        self, mock_read_persons, mock_read_relationships, mock_list_persons,
+    ):
+        persons = [
+            Person(3, "Bob"),
+            Person(1, "Seb", "King"),
+            Person(2, "Mario", "Bros"),
         ]
-    )
-    assert mock_print.call_count == 3
+
+        mock_read_persons.return_value = persons
+
+        list_persons()
+
+        mock_read_persons.assert_called_once_with()
+        mock_read_relationships.assert_called_once_with(persons)
+        mock_list_persons.assert_called_once_with(
+            [(person, []) for person in persons]
+        )
 
 
-@patch("builtins.print")
-@patch("pylms.pylms._search_person")
-def test_search_person_no_result(mock_search_person, mock_print):
-    mock_search_person.return_value = []
+class Test_search_person:
+    @patch("builtins.print")
+    @patch("pylms.pylms._search_person")
+    def test_search_person_no_result(self, mock_search_person, mock_print):
+        mock_search_person.return_value = []
 
-    search_person("p")
+        search_person("p")
 
-    mock_search_person.assert_called_once_with("p")
-    assert mock_print.call_count == 0
+        mock_search_person.assert_called_once_with("p")
+        assert mock_print.call_count == 0
 
+    @patch("pylms.pylms.ios.show_person")
+    @patch("pylms.pylms._search_person")
+    def test_search_person_results(self, mock_search_person, mock_show_person):
+        persons = [
+            Person(3, "Bob"),
+            Person(1, "Seb"),
+            Person(2, "MarioEb"),
+        ]
+        mock_search_person.return_value = persons
 
-@patch("pylms.pylms._print_person")
-@patch("pylms.pylms._search_person")
-def test_search_person_results(mock_search_person, mock_print_persons):
-    persons = [
-        Person(3, "Bob"),
-        Person(1, "Seb"),
-        Person(2, "MarioEb"),
-    ]
-    mock_search_person.return_value = persons
+        search_person("p")
 
-    search_person("p")
-
-    mock_search_person.assert_called_once_with("p")
-    assert mock_print_persons.call_count == 3
-    mock_print_persons.assert_has_calls([call(person) for person in persons])
+        mock_search_person.assert_called_once_with("p")
+        assert mock_show_person.call_count == 3
+        mock_show_person.assert_has_calls([call(person) for person in persons])
 
 
 class Test_update_person:
@@ -165,7 +154,7 @@ class Test_update_person:
         assert mock_storage.store_persons.call_count == 0
 
     @patch("pylms.pylms.storage")
-    @patch("pylms.pylms._interactive_person_details")
+    @patch("pylms.pylms.ios.get_person_details")
     @patch("pylms.pylms._interactive_select_person")
     def test_single_person(self, mock_select, mock_person_details, mock_storage):
         person = Person(1, "foo", "bar")
@@ -176,12 +165,10 @@ class Test_update_person:
         update_person("p")
 
         mock_select.assert_called_once_with("p")
-        assert mock_storage.read_persons.call_count == 1
-        assert mock_storage.store_persons.call_count == 1
         mock_storage.store_persons.assert_called_once_with([Person(1, "donut", "acme")])
 
     @patch("pylms.pylms.storage")
-    @patch("pylms.pylms._interactive_person_details")
+    @patch("pylms.pylms.ios.get_person_details")
     @patch("pylms.pylms._interactive_select_person")
     def test_out_of_several(self, mock_select, mock_person_details, mock_storage):
         person1 = Person(1, "foo", "bar")
@@ -194,19 +181,15 @@ class Test_update_person:
         update_person("p")
 
         mock_select.assert_called_once_with("p")
-        assert mock_storage.read_persons.call_count == 1
-        assert mock_storage.store_persons.call_count == 1
         mock_storage.store_persons.assert_called_once_with([person3, person1, Person(2, "donut", "acme")])
 
 
 class Test_delete_person:
 
-    @patch("builtins.print")
     @patch("pylms.pylms.storage")
-    @patch("pylms.pylms._interactive_hit_enter")
-    @patch("pylms.pylms._print_person")
+    @patch("pylms.pylms.events.deleting_person")
     @patch("pylms.pylms._interactive_select_person")
-    def test_delete_person(self, mock_select, mock_print_person, mock_hit_enter, mock_storage, mock_print):
+    def test_delete_person(self, mock_select, mock_deleting_person, mock_storage):
         person1 = Person(1, "foo", "bar")
         person2 = Person(2, "foo", "bar")
         person3 = Person(3, "foo", "bar")
@@ -216,34 +199,25 @@ class Test_delete_person:
         delete_person("p")
 
         mock_select.assert_called_once_with("p")
-        assert mock_select.call_count == 1
-        mock_print.assert_has_calls([call("Hit ENTER to delete:"), call("CTRL+C to exit")])
-        assert mock_print.call_count == 2
-        mock_print_person.assert_called_once_with(person3)
-        assert mock_print_person.call_count == 1
-        mock_hit_enter.assert_called_once_with()
-        assert mock_hit_enter.call_count == 1
+        mock_deleting_person.assert_called_once_with(person3)
         mock_storage.read_persons.assert_called_once_with()
-        assert mock_storage.read_persons.call_count == 1
         mock_storage.store_persons.assert_called_once_with([person2, person1])
-        assert mock_storage.store_persons.call_count == 1
 
     @patch("builtins.print")
     @patch("pylms.pylms.storage")
-    @patch("pylms.pylms._interactive_hit_enter")
-    @patch("pylms.pylms._print_person")
+    @patch("pylms.pylms.events.deleting_person")
+    @patch("pylms.pylms.ios.show_person")
     @patch("pylms.pylms._interactive_select_person")
     def test_no_person_selected_to_delete(
-        self, mock_select, mock_print_person, mock_hit_enter, mock_storage, mock_print
+        self, mock_select, mock_show_person, mock_creating_person, mock_storage, mock_print
     ):
         mock_select.return_value = None
 
         delete_person("p")
 
         mock_select.assert_called_once_with("p")
-        assert mock_select.call_count == 1
-        assert mock_print_person.call_count == 0
-        assert mock_hit_enter.call_count == 0
+        assert mock_show_person.call_count == 0
+        assert mock_creating_person.call_count == 0
         assert mock_storage.call_count == 0
         assert mock_print.call_count == 0
 
@@ -261,4 +235,3 @@ class Test_link_person:
         assert link_persons(request) is None
 
         mock_parse_link_request.assert_called_once_with(request)
-        assert mock_parse_link_request.call_count == 1

@@ -5,6 +5,9 @@ dist
 .coverage
 __pycache__
 
+# PyCharm
+.idea
+
 # PyLMS
 persons.db
 relationships.db

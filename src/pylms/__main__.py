@@ -2,10 +2,15 @@
 
 import logging
 from sys import argv
+import pylms.pylms
 from pylms.pylms import list_persons, store_person, update_person, delete_person, link_persons, ExitPyLMS
+from pylms.cli import CLI
 
 
 def main() -> None:
+    _cli = CLI()
+    pylms.pylms.ios = _cli
+    pylms.pylms.events = _cli
     logging.basicConfig(level=logging.INFO)
     try:
         _read_and_execute_commands()

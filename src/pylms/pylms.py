@@ -23,7 +23,7 @@ class IOs(ABC):
         pass
 
     @abstractmethod
-    def get_person_details(self) -> tuple[str, str | None]:
+    def update_person(self, person_to_update: Person) -> Person:
         pass
 
 
@@ -56,7 +56,7 @@ class CLI(IOs, EventListener):
     def list_persons(self, resolved_persons: list[(Person, list[Relationship])]) -> None:
         if resolved_persons:
             for person, rs in sorted(resolved_persons, key=lambda t: t[0].person_id):
-                ios.show_person(person)
+                self.show_person(person)
                 for r in rs:
                     other = r.right if r.left == person else r.left
                     print(f"    -> {r.repr_for(person)} de ({other.person_id}) {other}")
@@ -110,7 +110,21 @@ class CLI(IOs, EventListener):
         # should not happen
         raise RuntimeError(f"id {person_id} does not exist in list of Persons")
 
-    def get_person_details(self) -> tuple[str, str | None]:
+    def update_person(self, person_to_update: Person) -> Person:
+        print("Input new first name and last name to update:")
+        self.show_person(person_to_update)
+        print("CTRL+C to exit")
+
+        firstname: str
+        lastname: str
+        firstname, lastname = self._get_person_details()
+
+        person_to_update.firstname = firstname
+        person_to_update.lastname = lastname
+
+        return person_to_update
+
+    def _get_person_details(self) -> tuple[str, str | None]:
         while True:
             text = self._input_or_exit_pylms()
 
@@ -170,19 +184,13 @@ def update_person(pattern: str) -> None:
     if not person_to_update:
         return
 
-    print("Input new first name and last name to update:")
-    ios.show_person(person_to_update)
-    print("CTRL+C to exit")
-
-    firstname: str
-    lastname: str
-    firstname, lastname = ios.get_person_details()
+    updated_person = ios.update_person(person_to_update)
 
     persons = storage.read_persons()
     for person in persons:
         if person.person_id == person_to_update.person_id:
-            person.firstname = firstname
-            person.lastname = lastname
+            person.firstname = updated_person.firstname
+            person.lastname = updated_person.lastname
     storage.store_persons(persons)
 
 

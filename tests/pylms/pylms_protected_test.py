@@ -35,7 +35,7 @@ class Test_list_persons:
         assert mock_print.call_count == 1
 
     @patch("builtins.print")
-    @patch("pylms.pylms.ios.show_person")
+    @patch.object(under_test, "show_person")
     def test_one_person_no_relationship(self, mock_show_person, mock_print):
         person = Person(3, "John", "Doe")
 
@@ -46,7 +46,7 @@ class Test_list_persons:
         assert mock_print.call_count == 0
 
     @patch("builtins.print")
-    @patch("pylms.pylms.ios.show_person")
+    @patch.object(under_test, "show_person")
     def test_persons_no_relationship(self, mock_show_person, mock_print):
         persons = [
             Person(3, "Bob"),
@@ -198,3 +198,77 @@ class Test_parse_nl_link_request:
     @mark.parametrize("nl_request", ["aaa acme", "aaa", " aaa ", "fooaaa", "foo aaa"])
     def test_return_none_if_missing_person_patterns(self, nl_request):
         assert _parse_nl_link_request(nl_request) is None
+
+
+class Test_update_person:
+    @patch("builtins.print")
+    @patch.object(under_test, "_get_person_details")
+    @patch.object(under_test, "show_person")
+    def test_top_level(self, mock_show_person, mock_get_person_details, mock_print):
+        person = Person(1, "John", "Doe")
+        mock_get_person_details.return_value = ("foo", "bar")
+
+        res = under_test.update_person(person)
+
+        assert res.firstname == "foo"
+        assert res.lastname == "bar"
+
+        mock_show_person.assert_called_once_with(person)
+        mock_get_person_details.assert_called_once_with()
+        mock_print.assert_has_calls(
+            [
+                call("Input new first name and last name to update:"),
+                call("CTRL+C to exit"),
+            ]
+        )
+
+    @patch("builtins.print")
+    @patch("builtins.input")
+    @patch.object(under_test, "show_person")
+    def test_get_person_details_one_word(self, mock_show_person, mock_input, mock_print):
+        person = Person(1, "John", "Doe")
+
+        mock_input.return_value = "foo"
+
+        res = under_test.update_person(person)
+
+        assert res.firstname == "foo"
+        assert res.lastname is None
+        mock_input.assert_called_once_with()
+        assert mock_print.call_count == 2
+
+    @patch("builtins.print")
+    @patch("builtins.input")
+    @patch.object(under_test, "show_person")
+    def test_get_person_details_two_words(self, mock_show_person, mock_input, mock_print):
+        person = Person(1, "John", "Doe")
+
+        mock_input.return_value = "foo bar"
+
+        res = under_test.update_person(person)
+
+        assert res.firstname == "foo"
+        assert res.lastname == "bar"
+        mock_input.assert_called_once_with()
+        assert mock_print.call_count == 2
+
+    @patch("builtins.print")
+    @patch("builtins.input")
+    @patch.object(under_test, "show_person")
+    def test_get_person_three_words(self, mock_show_person, mock_input, mock_print):
+        person = Person(1, "John", "Doe")
+
+        mock_input.side_effect = ["foo bar acme", "foo bar"]
+
+        res = under_test.update_person(person)
+
+        assert res.firstname == "foo"
+        assert res.lastname == "bar"
+        assert mock_input.call_count == 2
+        mock_print.has_calls(
+            [
+                call("Input new first name and last name to update:"),
+                call("CTRL+C to exit"),
+                call("Too many words."),
+            ]
+        )

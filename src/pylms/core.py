@@ -84,10 +84,26 @@ class PersonIdGenerator:
 
 
 class RelationshipAlias:
-    def __init__(self, name: str, *, left_person_sex: Sex = None, right_person_sex: Sex = None) -> None:
+    def __init__(
+        self,
+        name: str,
+        *,
+        left_person_sex: Sex = None,
+        right_person_sex: Sex = None,
+        reverse: bool = False,
+    ) -> None:
+        """
+        A RelationshipAlias has a direction, that match the direction of the link request and may (`reversed=False`) or
+        may not (`reversed`=True) match the one of the RelationshipDefinition,
+        :param name:
+        :param left_person_sex:
+        :param right_person_sex:
+        :param reverse: ignored if RelationshipDefinition.directional is False
+        """
         self._name: str = name
         self._left_person_sex: Sex = left_person_sex
         self._right_person_sex: Sex = right_person_sex
+        self._reverse: bool = reverse
 
     @property
     def name(self) -> str:
@@ -105,6 +121,11 @@ class RelationshipAlias:
             return person
         return None
 
+    def to_relationship_definition_direction(self, left_person: Person, right_person: Person) -> (Person, Person):
+        if self._reverse:
+            return right_person, left_person
+        return left_person, right_person
+
 
 class RelationshipDefinition:
     def __init__(
@@ -113,11 +134,13 @@ class RelationshipDefinition:
         aliases: list[RelationshipAlias] = None,
         person_left_repr: str = None,
         person_right_repr: str = None,
+        directional: bool = False,
     ) -> None:
         self._name: str = name
         self._person_left_repr: str = name if person_left_repr is None else person_left_repr
         self._person_right_repr: str = name if person_right_repr is None else person_right_repr
         self._aliases: list[RelationshipAlias] = [] if aliases is None else aliases[:]
+        self._directional: bool = directional
 
     @property
     def name(self) -> str:
@@ -126,6 +149,10 @@ class RelationshipDefinition:
     @property
     def aliases(self) -> list[RelationshipAlias]:
         return self._aliases
+
+    @property
+    def directional(self) -> bool:
+        return self._directional
 
     def left_repr(self, person: Person) -> str:
         return self._person_left_repr
@@ -142,20 +169,21 @@ parent_enfant = RelationshipDefinition(
     aliases=[
         RelationshipAlias("père de", left_person_sex=MALE),
         RelationshipAlias("mère de", left_person_sex=FEMALE),
-        RelationshipAlias("fils de", right_person_sex=MALE),
-        RelationshipAlias("fille de", right_person_sex=FEMALE),
+        RelationshipAlias("fils de", left_person_sex=MALE, reverse=True),
+        RelationshipAlias("fille de", left_person_sex=FEMALE, reverse=True),
         RelationshipAlias("parent de"),
-        RelationshipAlias("enfant de"),
+        RelationshipAlias("enfant de", reverse=True),
     ],
     person_left_repr="parent",
     person_right_repr="enfant",
+    directional=True,
 )
 
 copain_copine = RelationshipDefinition(
     name="Copain/Copine",
     aliases=[
-        RelationshipAlias("copain de", right_person_sex=MALE),
-        RelationshipAlias("copine de", right_person_sex=FEMALE),
+        RelationshipAlias("copain de", left_person_sex=MALE),
+        RelationshipAlias("copine de", left_person_sex=FEMALE),
     ],
     person_left_repr="copain",
     person_right_repr="copain",
@@ -166,6 +194,10 @@ relationship_definitions: list[RelationshipDefinition] = [parent_enfant, copain_
 
 class Relationship:
     def __init__(self, person_left: Person, person_right: Person, definition: RelationshipDefinition) -> None:
+        """
+        A RelationshipDefinition has a default direction. Left and right designate People in the direction of this
+        default direction.
+        """
         self._person_left: Person = person_left
         self._person_right: Person = person_right
         self._definition: RelationshipDefinition = definition

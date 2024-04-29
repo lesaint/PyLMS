@@ -2,8 +2,8 @@ from datetime import datetime
 from pylms.pylms import Person
 from pylms.pylms import PersonIdGenerator
 from unittest.mock import patch
-from pylms.core import RelationshipDefinition, Relationship
-from pytest import raises
+from pylms.core import RelationshipDefinition, Relationship, Sex, MALE, FEMALE
+from pytest import raises, mark
 
 
 @patch("pylms.core.datetime.datetime")
@@ -80,3 +80,26 @@ class TestRelationship:
 
     def test_repr_for_right_person(self):
         assert self.relationship.repr_for(self.person2) == "RightFoo"
+
+
+class TestPersonSex:
+    @mark.parametrize("constant_sex", [MALE, FEMALE])
+    def test_init_accepts_constant_as_parameter(self, constant_sex):
+        Person(person_id=1, firstname="foo", lastname="acme", sex=constant_sex)
+
+    @mark.parametrize("non_constant_sex", [Sex("MALE"), Sex("FEMALE"), Sex("FOO")])
+    def test_init_fails_if_sex_is_not_constant(self, non_constant_sex):
+        with raises(ValueError, match="Sex must be either constant MALE or FEMALE"):
+            Person(person_id=1, firstname="foo", lastname="bar", sex=non_constant_sex)
+
+    @mark.parametrize(
+        "person",
+        [
+            Person(person_id=1, firstname="foo", sex=None),
+            Person(person_id=1, firstname="foo", sex=MALE),
+        ],
+    )
+    @mark.parametrize("non_constant_sex", [Sex("MALE"), Sex("FEMALE"), Sex("FOO")])
+    def test_setter_fails_if_sex_is_not_constant(self, person, non_constant_sex):
+        with raises(ValueError, match="Sex must be either constant MALE or FEMALE"):
+            Person(person_id=1, firstname="foo", lastname="bar", sex=non_constant_sex)

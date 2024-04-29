@@ -1,8 +1,28 @@
 import datetime
 
 
+class Sex:
+    def __init__(self, name: str) -> None:
+        self._name = name
+
+    @property
+    def name(self):
+        return self._name
+
+
+MALE: Sex = Sex("MALE")
+FEMALE: Sex = Sex("FEMALE")
+
+
 class Person:
-    def __init__(self, person_id: int, firstname: str, lastname: str = None, created: datetime.datetime = None) -> None:
+    def __init__(
+        self,
+        person_id: int,
+        firstname: str,
+        lastname: str = None,
+        created: datetime.datetime = None,
+        sex: Sex = None,
+    ) -> None:
         if person_id is None:
             raise ValueError("id can't be None")
         if not firstname:
@@ -11,10 +31,17 @@ class Person:
         self.person_id = int(person_id)
         self.firstname = firstname
         self.lastname = lastname
-        self.created = Person.check_or_set(created)
+        self._sex = None if sex is None else Person._check_sex(sex)
+        self.created = Person._check_or_set_created(created)
 
     @staticmethod
-    def check_or_set(dt: datetime.datetime | None) -> datetime.datetime:
+    def _check_sex(sex: Sex) -> Sex:
+        if sex != MALE and sex != FEMALE:
+            raise ValueError("Sex must be either constant MALE or FEMALE")
+        return sex
+
+    @staticmethod
+    def _check_or_set_created(dt: datetime.datetime | None) -> datetime.datetime:
         if not dt:
             return datetime.datetime.now()
         # can't make isinstance work:  :'(
@@ -22,6 +49,14 @@ class Person:
         # if not isinstance(dt, datetime.datetime):
         #     raise ValueError(f"created parameter must be a datetime (got {type(dt)})")
         return dt
+
+    @property
+    def sex(self) -> Sex | None:
+        return self._sex
+
+    @sex.setter
+    def sex(self, sex: Sex) -> None:
+        self._sex = Person._check_sex(sex)
 
     def __eq__(self, other: any) -> bool:
         if isinstance(other, Person):

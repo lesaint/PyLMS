@@ -153,39 +153,37 @@ class Test_update_person:
         update_person("p")
 
         mock_select.assert_called_once_with("p")
-        assert mock_storage.store_persons.call_count == 0
+        assert mock_storage.call_count == 0
 
     @patch("pylms.pylms.storage")
     @patch("pylms.pylms.ios.update_person")
     @patch("pylms.pylms._select_person")
     def test_single_person(self, mock_select, mock_update_person, mock_storage):
         person = Person(1, "foo", "bar")
+        updated_person = Person(234, "donut", "acme")
         mock_select.return_value = person
-        mock_update_person.return_value = Person(234, "donut", "acme")
-        mock_storage.read_persons.return_value = [person]
+        mock_update_person.return_value = updated_person
 
         update_person("p")
 
         mock_select.assert_called_once_with("p")
         mock_update_person.assert_called_once_with(person)
-        mock_storage.store_persons.assert_called_once_with([Person(1, "donut", "acme")])
+        mock_storage.update_person.assert_called_once_with(updated_person)
 
     @patch("pylms.pylms.storage")
     @patch("pylms.pylms.ios.update_person")
     @patch("pylms.pylms._select_person")
     def test_out_of_several(self, mock_select, mock_update_person, mock_storage):
-        person1 = Person(1, "foo", "bar")
         person2 = Person(2, "foo", "bar")
-        person3 = Person(3, "foo", "bar")
+        updated_person = Person(888, "donut", "acme")
         mock_select.return_value = person2
-        mock_update_person.return_value = Person(888, "donut", "acme")
-        mock_storage.read_persons.return_value = [person3, person1, person2]
+        mock_update_person.return_value = updated_person
 
         update_person("p")
 
         mock_select.assert_called_once_with("p")
         mock_update_person.assert_called_once_with(person2)
-        mock_storage.store_persons.assert_called_once_with([person3, person1, Person(2, "donut", "acme")])
+        mock_storage.update_person.assert_called_once_with(updated_person)
 
 
 class Test_delete_person:

@@ -1,7 +1,7 @@
 from datetime import datetime
 from pathlib import Path
-from pylms.core import Person, Relationship, RelationshipDefinition
-from pylms.storage import read_persons, store_persons
+from pylms.core import Person, Relationship, RelationshipDefinition, MALE, FEMALE
+from pylms.storage import read_persons, store_persons, update_person
 from pylms.storage import read_relationships, store_relationships
 from pytest import raises, mark
 from unittest.mock import patch
@@ -19,7 +19,7 @@ def test_read_persons_empty_file(tmpdir):
         assert not read_persons()
 
 
-def test_read_one_person_with_lastname(tmpdir):
+def test_read_one_person_with_lastname_backward_compatible_no_sex(tmpdir):
     file_name = tmpdir + "foo.db"
     file = Path(file_name)
     with file.open("w"):
@@ -32,13 +32,32 @@ def test_read_one_person_with_lastname(tmpdir):
         assert persons[0].firstname == "John"
         assert persons[0].lastname == "Doe"
         assert persons[0].created == datetime(2024, 4, 16, 12, 40, 30, 407998)
+        assert persons[0].sex is None
+
+
+def test_read_one_person_with_lastname(tmpdir):
+    file_name = tmpdir + "foo.db"
+    file = Path(file_name)
+    with file.open("w"):
+        file.write_text(
+            '[{"id": 11, "firstname": "John", "lastname": "Doe", "created": "2024-04-16 12:40:30.407998", "sex": null}]'
+        )
+
+    with patch("pylms.storage.persons_file_name", file_name):
+        persons = read_persons()
+        assert len(persons) == 1
+        assert persons[0].person_id == 11
+        assert persons[0].firstname == "John"
+        assert persons[0].lastname == "Doe"
+        assert persons[0].created == datetime(2024, 4, 16, 12, 40, 30, 407998)
+        assert persons[0].sex is None
 
 
 def test_read_one_person_without_lastname(tmpdir):
     file_name = tmpdir + "foo.db"
     file = Path(file_name)
     with file.open("w"):
-        file.write_text(r'[{"id": 10, "firstname": "S\u00e9bastien", "created": "2024-04-16 12:40:30"}]')
+        file.write_text(r'[{"id": 10, "firstname": "S\u00e9bastien", "created": "2024-04-16 12:40:30", "sex": "M"}]')
 
     with patch("pylms.storage.persons_file_name", file_name):
         persons = read_persons()
@@ -47,6 +66,7 @@ def test_read_one_person_without_lastname(tmpdir):
         assert persons[0].firstname == "Sébastien"
         assert persons[0].lastname is None
         assert persons[0].created == datetime(2024, 4, 16, 12, 40, 30)
+        assert persons[0].sex == MALE
 
 
 def test_store_empty_list_of_persons():
@@ -54,7 +74,7 @@ def test_store_empty_list_of_persons():
         store_persons([])
 
 
-def test_store_one_person_with_lastname(tmpdir):
+def test_store_one_person_with_lastname_no_sex(tmpdir):
     file_name = tmpdir + "foo.db"
     file = Path(file_name)
     person = Person(1, "Jim", "Morisson", created=datetime(2024, 4, 5, 12, 41, 9))
@@ -65,20 +85,20 @@ def test_store_one_person_with_lastname(tmpdir):
     with file.open("r"):
         assert (
             file.read_text()
-            == '[{"id": 1, "firstname": "Jim", "lastname": "Morisson", "created": "2024-04-05 12:41:09"}]'
+            == '[{"id": 1, "firstname": "Jim", "lastname": "Morisson", "created": "2024-04-05 12:41:09", "sex": null}]'
         )
 
 
 def test_store_one_person_without_lastname(tmpdir):
     file_name = tmpdir + "foo.db"
     file = Path(file_name)
-    person = Person(2, "Jim", created=datetime(2024, 4, 5, 12, 41, 58))
+    person = Person(2, "Jim", created=datetime(2024, 4, 5, 12, 41, 58), sex=MALE)
 
     with patch("pylms.storage.persons_file_name", file_name):
         store_persons([person])
 
     with file.open("r"):
-        assert file.read_text() == '[{"id": 2, "firstname": "Jim", "created": "2024-04-05 12:41:58"}]'
+        assert file.read_text() == '[{"id": 2, "firstname": "Jim", "created": "2024-04-05 12:41:58", "sex": "M"}]'
 
 
 def test_store_persons(tmpdir):
@@ -87,9 +107,9 @@ def test_store_persons(tmpdir):
     t1 = datetime(2024, 4, 5, 12, 41, 58)
     t2 = datetime(2024, 9, 18, 21, 8, 8)
     persons = [
-        Person(3, "Sébastien", "Lesaint", t1),
+        Person(3, "Sébastien", "Lesaint", t1, sex=None),
         Person(4, "Max", "Payne", t2),
-        Person(5, "Bob", created=t2),
+        Person(5, "Bob", created=t2, sex=FEMALE),
     ]
 
     with patch("pylms.storage.persons_file_name", file_name):
@@ -98,9 +118,10 @@ def test_store_persons(tmpdir):
     with file.open("r"):
         assert (
             file.read_text() == "["
-            r'{"id": 3, "firstname": "S\u00e9bastien", "lastname": "Lesaint", "created": "2024-04-05 12:41:58"}, '
-            '{"id": 4, "firstname": "Max", "lastname": "Payne", "created": "2024-09-18 21:08:08"}, '
-            '{"id": 5, "firstname": "Bob", "created": "2024-09-18 21:08:08"}'
+            r'{"id": 3, "firstname": "S\u00e9bastien", "lastname": "Lesaint", '
+            '"created": "2024-04-05 12:41:58", "sex": null}, '
+            '{"id": 4, "firstname": "Max", "lastname": "Payne", "created": "2024-09-18 21:08:08", "sex": null}, '
+            '{"id": 5, "firstname": "Bob", "created": "2024-09-18 21:08:08", "sex": "F"}'
             "]"
         )
 
@@ -284,3 +305,41 @@ def test_read_relationships(tmpdir):
         assert relationships[4].left == persons[0]
         assert relationships[4].right == persons[1]
         assert relationships[4].definition is relationship1
+
+
+@patch("pylms.storage.read_persons", return_value=[])
+def test_update_fails_if_no_existing_persons(mock_read_persons):
+    person = Person(person_id=12, firstname="John")
+
+    with raises(ValueError, match="Can't find person with id 12"):
+        update_person(person)
+
+    mock_read_persons.assert_called_once_with()
+
+
+@patch("pylms.storage.store_persons")
+@patch("pylms.storage.read_persons")
+def test_update_single_person(mock_read_persons, mock_store_persons):
+    person = Person(person_id=12, firstname="John")
+    person_to_update = Person(person_id=12, firstname="John", lastname="Doe")
+    mock_read_persons.return_value = [person]
+
+    update_person(person_to_update)
+
+    mock_read_persons.assert_called_once_with()
+    mock_store_persons.assert_called_once_with([person_to_update])
+
+
+@patch("pylms.storage.store_persons")
+@patch("pylms.storage.read_persons")
+def test_update_several_person(mock_read_persons, mock_store_persons):
+    person_1 = Person(person_id=12, firstname="John")
+    person_2 = Person(person_id=21, firstname="Tina")
+    person_3 = Person(person_id=35, firstname="Peter")
+    person_to_update = Person(person_id=12, firstname="John", lastname="Doe")
+    mock_read_persons.return_value = [person_3, person_1, person_2]
+
+    update_person(person_to_update)
+
+    mock_read_persons.assert_called_once_with()
+    mock_store_persons.assert_called_once_with([person_3, person_2, person_to_update])

@@ -1,6 +1,7 @@
 from datetime import datetime
 from pylms.core import Person
 from pylms.pylms import list_persons, store_person, search_person, update_person, delete_person, link_persons
+from pylms.pylms import LinkRequest, Relationship, RelationshipDefinition, RelationshipAlias
 from unittest.mock import patch, call
 
 
@@ -145,7 +146,7 @@ class Test_search_person:
 class Test_update_person:
 
     @patch("pylms.pylms.storage")
-    @patch("pylms.pylms._interactive_select_person")
+    @patch("pylms.pylms._select_person")
     def test_no_person_selected(self, mock_select, mock_storage):
         mock_select.return_value = None
 
@@ -156,7 +157,7 @@ class Test_update_person:
 
     @patch("pylms.pylms.storage")
     @patch("pylms.pylms.ios.update_person")
-    @patch("pylms.pylms._interactive_select_person")
+    @patch("pylms.pylms._select_person")
     def test_single_person(self, mock_select, mock_update_person, mock_storage):
         person = Person(1, "foo", "bar")
         mock_select.return_value = person
@@ -171,7 +172,7 @@ class Test_update_person:
 
     @patch("pylms.pylms.storage")
     @patch("pylms.pylms.ios.update_person")
-    @patch("pylms.pylms._interactive_select_person")
+    @patch("pylms.pylms._select_person")
     def test_out_of_several(self, mock_select, mock_update_person, mock_storage):
         person1 = Person(1, "foo", "bar")
         person2 = Person(2, "foo", "bar")
@@ -191,7 +192,7 @@ class Test_delete_person:
 
     @patch("pylms.pylms.storage")
     @patch("pylms.pylms.events.deleting_person")
-    @patch("pylms.pylms._interactive_select_person")
+    @patch("pylms.pylms._select_person")
     def test_delete_person(self, mock_select, mock_deleting_person, mock_storage):
         person1 = Person(1, "foo", "bar")
         person2 = Person(2, "foo", "bar")
@@ -210,7 +211,7 @@ class Test_delete_person:
     @patch("pylms.pylms.storage")
     @patch("pylms.pylms.events.deleting_person")
     @patch("pylms.pylms.ios.show_person")
-    @patch("pylms.pylms._interactive_select_person")
+    @patch("pylms.pylms._select_person")
     def test_no_person_selected_to_delete(
         self, mock_select, mock_show_person, mock_creating_person, mock_storage, mock_print
     ):
@@ -225,16 +226,70 @@ class Test_delete_person:
         assert mock_print.call_count == 0
 
 
+relationship_definition_1 = RelationshipDefinition("22", aliases=[RelationshipAlias("22a")])
+person_1 = Person(person_id=1, firstname="Jane")
+person_2 = Person(person_id=2, firstname="Tarzan")
+person_3 = Person(person_id=3, firstname="Jane2")
+person_4 = Person(person_id=4, firstname="Tarzan2")
+
+
 class Test_link_person:
 
     def test_empty_request(self):
         assert link_persons("") is None
 
-    @patch("pylms.pylms._parse_nl_link_request")
+    @patch("pylms.pylms._parse_nl_link_request", return_value=None)
     def test_no_relationship_definition_match(self, mock_parse_link_request):
-        mock_parse_link_request.return_value = None
         request = "p"
 
         assert link_persons(request) is None
 
         mock_parse_link_request.assert_called_once_with(request)
+
+    @patch("pylms.pylms.storage")
+    @patch("pylms.pylms.events.creating_link")
+    @patch("pylms.pylms.events.configured_from_alias")
+    @patch.object(relationship_definition_1.aliases[0], "configure_right_person", return_value=person_4)
+    @patch.object(relationship_definition_1.aliases[0], "configure_left_person", return_value=person_3)
+    @patch("pylms.pylms._select_person", side_effect=[person_1, person_2])
+    @patch(
+        "pylms.pylms._parse_nl_link_request",
+        return_value=LinkRequest(
+            left_person_pattern="foo",
+            right_person_pattern="bar",
+            definition=relationship_definition_1,
+            alias=relationship_definition_1.aliases[0],
+        ),
+    )
+    def test_sends_events_and_store_updated_persons(
+        self,
+        mock_link_request,
+        mock_select_person,
+        mock_configure_left,
+        mock_configure_right,
+        mock_configured_from_alias,
+        mock_creating_link,
+        mock_storage,
+    ):
+        mock_storage.read_persons.return_value = []
+
+        request = "p"
+
+        assert link_persons(request) is None
+
+        mock_link_request.assert_called_once_with(request)
+        mock_select_person.has_calls([call(person_1), call(person_2)])
+        mock_configure_left.assert_called_once_with(person_1)
+        mock_configure_right.assert_called_once_with(person_2)
+        mock_configured_from_alias.has_calls([call(person_3), call(person_4)])
+        mock_creating_link.assert_called_once_with(relationship_definition_1, person_3, person_4)
+        mock_storage.read_persons.assert_called_once_with()
+        mock_storage.read_relationships.assert_called_once_with([])
+
+        class ExpectedRelationship:
+            def __eq__(self, other: Relationship):
+                return (
+                    other.left == person_3 and other.right == person_4 and other.definition == relationship_definition_1
+                )
+
+        mock_storage.store_relationships([ExpectedRelationship()])

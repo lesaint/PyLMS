@@ -1,6 +1,6 @@
 from pylms.core import Person
-from pylms.core import RelationshipDefinition
-from pylms.pylms import _search_person, _interactive_select_person
+from pylms.core import RelationshipDefinition, RelationshipAlias
+from pylms.pylms import _search_person, _select_person
 from pylms.pylms import _parse_nl_link_request
 from pytest import mark
 from unittest.mock import patch, call
@@ -22,14 +22,14 @@ def test_search_person(mock_storage):
     assert _search_person("foo") == []
 
 
-class Test_interactive_select_person:
+class Test_select_person:
 
     @patch("builtins.print")
     @patch("pylms.pylms._search_person")
     def test_no_match(self, mock_search_person, mock_print):
         mock_search_person.return_value = []
 
-        res = _interactive_select_person("p")
+        res = _select_person("p")
 
         assert res is None
         mock_search_person.assert_called_once_with("p")
@@ -42,7 +42,7 @@ class Test_interactive_select_person:
         person = Person(123, "John", "Wick")
         mock_search_person.return_value = [person]
 
-        res = _interactive_select_person("p")
+        res = _select_person("p")
 
         assert res == person
         mock_search_person.assert_called_once_with("p")
@@ -59,7 +59,7 @@ class Test_interactive_select_person:
         mock_search_person.return_value = persons
         mock_select_person.return_value = persons[0]
 
-        res = _interactive_select_person("p")
+        res = _select_person("p")
 
         assert res == persons[0]
         mock_search_person.assert_called_once_with("p")
@@ -69,10 +69,32 @@ class Test_interactive_select_person:
 
 
 relationship_definition_1 = RelationshipDefinition(
-    name="foo", aliases=["aaa", "bbb", "ccc"], person_left_repr="leftFoo", person_right_repr="rightFoo"
+    name="foo",
+    aliases=[
+        RelationshipAlias("aaa"),
+        RelationshipAlias("bbb"),
+        RelationshipAlias("ccc"),
+    ],
+    person_left_repr="leftFoo",
+    person_right_repr="rightFoo",
 )
-relationship_definition_2 = RelationshipDefinition(name="bar", aliases=["11", "22", "33"], person_left_repr="leftBar")
-relationship_definition_3 = RelationshipDefinition(name="acme", aliases=["a2", "b3", "c4"])
+relationship_definition_2 = RelationshipDefinition(
+    name="bar",
+    aliases=[
+        RelationshipAlias("11"),
+        RelationshipAlias("22"),
+        RelationshipAlias("33"),
+    ],
+    person_left_repr="leftBar",
+)
+relationship_definition_3 = RelationshipDefinition(
+    name="acme",
+    aliases=[
+        RelationshipAlias("a2"),
+        RelationshipAlias("b3"),
+        RelationshipAlias("c4"),
+    ],
+)
 
 
 class Test_parse_nl_link_request:
@@ -81,7 +103,7 @@ class Test_parse_nl_link_request:
     @mark.parametrize(
         "nl_request, alias",
         [
-            (s.format(f=alias), alias)
+            (s.format(f=alias.name), alias)
             for s in ["donut {f} acme", "donut{f}acme", " donut {f} acme"]
             for alias in relationship_definition_1.aliases
         ],
@@ -100,10 +122,14 @@ class Test_parse_nl_link_request:
     )
     @mark.parametrize(
         "alias, expected_definition",
-        [("aaa", relationship_definition_1), ("c4", relationship_definition_3), ("33", relationship_definition_2)],
+        [
+            (relationship_definition_1.aliases[0], relationship_definition_1),
+            (relationship_definition_3.aliases[1], relationship_definition_3),
+            (relationship_definition_2.aliases[2], relationship_definition_2),
+        ],
     )
     def test_select_the_right_definition_from_alias(self, alias, expected_definition):
-        link_request = _parse_nl_link_request(f"Johan {alias} Peter")
+        link_request = _parse_nl_link_request(f"Johan {alias.name} Peter")
 
         assert link_request.alias == alias
         assert link_request.definition == expected_definition

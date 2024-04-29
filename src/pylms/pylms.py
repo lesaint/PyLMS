@@ -1,6 +1,6 @@
 from pylms import storage
 from pylms.core import Person, PersonIdGenerator
-from pylms.core import relationship_definitions, RelationshipDefinition, Relationship
+from pylms.core import relationship_definitions, RelationshipDefinition, Relationship, RelationshipAlias
 from pylms.core import resolve_persons
 from abc import abstractmethod, ABC
 import logging
@@ -43,6 +43,10 @@ class EventListener(ABC):
     def creating_link(self, rl_definition: RelationshipDefinition, person_left: Person, person_right: Person) -> None:
         pass
 
+    @abstractmethod
+    def configured_from_alias(self, person: Person, alias: RelationshipAlias) -> None:
+        pass
+
 
 ios: IOs
 events: EventListener
@@ -59,7 +63,7 @@ def list_persons() -> None:
     ios.list_persons(resolved_persons)
 
 
-def _interactive_select_person(pattern: str) -> Person | None:
+def _select_person(pattern: str) -> Person | None:
     persons = _search_person(pattern)
     if not persons:
         return
@@ -71,7 +75,7 @@ def _interactive_select_person(pattern: str) -> Person | None:
 
 
 def update_person(pattern: str) -> None:
-    person_to_update: Person = _interactive_select_person(pattern)
+    person_to_update: Person = _select_person(pattern)
     if not person_to_update:
         return
 
@@ -126,7 +130,7 @@ def store_person(firstname: str, lastname: str = None) -> None:
 
 
 def delete_person(pattern: str) -> None:
-    person_to_delete: Person = _interactive_select_person(pattern)
+    person_to_delete: Person = _select_person(pattern)
     if not person_to_delete:
         return
 
@@ -139,23 +143,28 @@ def delete_person(pattern: str) -> None:
 
 class LinkRequest:
     def __init__(
-        self, *, left_person_pattern: str, right_person_pattern: str, definition: RelationshipDefinition, alias: str
+        self,
+        *,
+        left_person_pattern: str,
+        right_person_pattern: str,
+        definition: RelationshipDefinition,
+        alias: RelationshipAlias,
     ) -> None:
         self.left_person_pattern: str = left_person_pattern
         self.right_person_pattern: str = right_person_pattern
         self.definition: RelationshipDefinition = definition
-        self.alias: str = alias
+        self.alias: RelationshipAlias = alias
 
 
-def _find_relation_ship(natural_language_link_order: str) -> tuple[RelationshipDefinition, str] | None:
+def _find_relation_ship(natural_language_link_order: str) -> tuple[RelationshipDefinition, RelationshipAlias] | None:
     if len(natural_language_link_order) == 0:
         return None
 
-    natural_language_link_order = natural_language_link_order.lower()
+    natural_language_link_order: str = natural_language_link_order.lower()
 
     for rl in relationship_definitions:
         for alias in rl.aliases:
-            if alias.lower() in natural_language_link_order:
+            if alias.name.lower() in natural_language_link_order:
                 return rl, alias
 
     return None
@@ -167,7 +176,9 @@ def _parse_nl_link_request(natural_language_link_request: str) -> LinkRequest | 
         return None
     definition, alias = match
 
-    person_patterns = list(filter(lambda s: len(s) > 0, map(str.strip, natural_language_link_request.split(alias))))
+    person_patterns = list(
+        filter(lambda s: len(s) > 0, map(str.strip, natural_language_link_request.split(alias.name)))
+    )
     patterns_count = len(person_patterns)
     if patterns_count != 2:
         logger.error(f"Unsupported link request: wrong number of person patterns ({patterns_count})")
@@ -181,13 +192,22 @@ def _parse_nl_link_request(natural_language_link_request: str) -> LinkRequest | 
     )
 
 
+def _configure_person(alias: RelationshipAlias, person: Person, configure_method: str) -> Person:
+    configure_person = getattr(alias, configure_method)
+    configured_person = configure_person(person)
+    if configured_person is None:
+        return person
+    events.configured_from_alias(alias=alias, person=configured_person)
+    return configured_person
+
+
 def link_persons(natural_language_link_request: str) -> None:
     link_request = _parse_nl_link_request(natural_language_link_request)
     if link_request is None:
         return
 
-    person_left = _interactive_select_person(link_request.left_person_pattern)
-    person_right = _interactive_select_person(link_request.right_person_pattern)
+    person_left = _select_person(link_request.left_person_pattern)
+    person_right = _select_person(link_request.right_person_pattern)
 
     if person_left is None:
         logger.info(f'No match for "{link_request.left_person_pattern}".')
@@ -196,13 +216,17 @@ def link_persons(natural_language_link_request: str) -> None:
     if person_left is None or person_right is None:
         return
 
-    events.creating_link(link_request.definition, person_left, person_right)
+    # configure persons from alias, if any
+    configured_person_left = _configure_person(link_request.alias, person_left, "configure_left_person")
+    configured_person_right = _configure_person(link_request.alias, person_right, "configure_right_person")
 
+    # create link
+    events.creating_link(link_request.definition, configured_person_left, configured_person_right)
     persons = storage.read_persons()
     relationships = storage.read_relationships(persons)
     relationship = Relationship(
-        person_left=person_left,
-        person_right=person_right,
+        person_left=configured_person_left,
+        person_right=configured_person_right,
         definition=link_request.definition,
     )
     storage.store_relationships(relationships + [relationship])

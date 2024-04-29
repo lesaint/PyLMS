@@ -83,25 +83,48 @@ class PersonIdGenerator:
         return res
 
 
+class RelationshipAlias:
+    def __init__(self, name: str, *, left_person_sex: Sex = None, right_person_sex: Sex = None) -> None:
+        self._name: str = name
+        self._left_person_sex: Sex = left_person_sex
+        self._right_person_sex: Sex = right_person_sex
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    def configure_left_person(self, person: Person) -> Person | None:
+        if person.sex is None and self._left_person_sex is not None:
+            person.sex = self._left_person_sex
+            return person
+        return None
+
+    def configure_right_person(self, person: Person) -> Person | None:
+        if person.sex is None and self._right_person_sex is not None:
+            person.sex = self._right_person_sex
+            return person
+        return None
+
+
 class RelationshipDefinition:
     def __init__(
         self,
         name: str,
-        aliases: list[str] = None,
+        aliases: list[RelationshipAlias] = None,
         person_left_repr: str = None,
         person_right_repr: str = None,
     ) -> None:
         self._name: str = name
         self._person_left_repr: str = name if person_left_repr is None else person_left_repr
         self._person_right_repr: str = name if person_right_repr is None else person_right_repr
-        self._aliases: list[str] = [] if aliases is None else aliases[:]
+        self._aliases: list[RelationshipAlias] = [] if aliases is None else aliases[:]
 
     @property
     def name(self) -> str:
         return self._name
 
     @property
-    def aliases(self) -> list[str]:
+    def aliases(self) -> list[RelationshipAlias]:
         return self._aliases
 
     def left_repr(self, person: Person) -> str:
@@ -117,12 +140,12 @@ class RelationshipDefinition:
 parent_enfant = RelationshipDefinition(
     name="Parent/Enfant",
     aliases=[
-        "père de",
-        "mère de",
-        "fils de",
-        "fille de",
-        "parent de",
-        "enfant de",
+        RelationshipAlias("père de", left_person_sex=MALE),
+        RelationshipAlias("mère de", left_person_sex=FEMALE),
+        RelationshipAlias("fils de", right_person_sex=MALE),
+        RelationshipAlias("fille de", right_person_sex=FEMALE),
+        RelationshipAlias("parent de"),
+        RelationshipAlias("enfant de"),
     ],
     person_left_repr="parent",
     person_right_repr="enfant",
@@ -130,12 +153,15 @@ parent_enfant = RelationshipDefinition(
 
 copain_copine = RelationshipDefinition(
     name="Copain/Copine",
-    aliases=["copain de", "copine de"],
+    aliases=[
+        RelationshipAlias("copain de", right_person_sex=MALE),
+        RelationshipAlias("copine de", right_person_sex=FEMALE),
+    ],
     person_left_repr="copain",
     person_right_repr="copain",
 )
 
-relationship_definitions = [parent_enfant, copain_copine]
+relationship_definitions: list[RelationshipDefinition] = [parent_enfant, copain_copine]
 
 
 class Relationship:

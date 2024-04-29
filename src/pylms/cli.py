@@ -1,3 +1,4 @@
+from pylms.core import RelationshipAlias
 from pylms.pylms import IOs, EventListener, ExitPyLMS
 from pylms.pylms import Person, Relationship, RelationshipDefinition
 
@@ -109,3 +110,6 @@ class CLI(IOs, EventListener):
         self.show_person(person_right)
         print("CTRL+C to exit")
         self._interactive_hit_enter()
+
+    def configured_from_alias(self, person: Person, alias: RelationshipAlias) -> None:
+        print(f"Sex of {person} set to {person.sex} from alias {alias.name}")

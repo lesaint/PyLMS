@@ -11,6 +11,7 @@ class CLI(IOs, EventListener):
         created = person.created
         print(
             f"({person.person_id})",
+            f" {person.sex.name}" if person.sex is not None else "",
             person,
             f"({created.year}-{created.month}-{created.day} {created.hour}-{created.minute}-{created.second})",
         )

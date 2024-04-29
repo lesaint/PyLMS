@@ -81,12 +81,7 @@ def update_person(pattern: str) -> None:
 
     updated_person = ios.update_person(person_to_update)
 
-    persons = storage.read_persons()
-    for person in persons:
-        if person.person_id == person_to_update.person_id:
-            person.firstname = updated_person.firstname
-            person.lastname = updated_person.lastname
-    storage.store_persons(persons)
+    storage.update_person(updated_person)
 
 
 def search_person(pattern: str) -> None:
@@ -198,6 +193,7 @@ def _configure_person(alias: RelationshipAlias, person: Person, configure_method
     if configured_person is None:
         return person
     events.configured_from_alias(alias=alias, person=configured_person)
+    storage.update_person(person)
     return configured_person
 
 

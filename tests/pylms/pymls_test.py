@@ -231,6 +231,8 @@ person_1 = Person(person_id=1, firstname="Jane")
 person_2 = Person(person_id=2, firstname="Tarzan")
 person_3 = Person(person_id=3, firstname="Jane2")
 person_4 = Person(person_id=4, firstname="Tarzan2")
+person_5 = Person(person_id=3, firstname="Jane3")
+person_6 = Person(person_id=4, firstname="Tarzan3")
 
 
 class Test_link_person:
@@ -247,8 +249,10 @@ class Test_link_person:
         mock_parse_link_request.assert_called_once_with(request)
 
     @patch("pylms.pylms.storage")
-    @patch("pylms.pylms.events.creating_link")
-    @patch("pylms.pylms.events.configured_from_alias")
+    @patch("pylms.pylms.events")
+    @patch.object(
+        relationship_definition_1.aliases[0], "to_relationship_definition_direction", return_value=(person_5, person_6)
+    )
     @patch.object(relationship_definition_1.aliases[0], "configure_right_person", return_value=person_4)
     @patch.object(relationship_definition_1.aliases[0], "configure_left_person", return_value=person_3)
     @patch("pylms.pylms._select_person", side_effect=[person_1, person_2])
@@ -267,8 +271,8 @@ class Test_link_person:
         mock_select_person,
         mock_configure_left,
         mock_configure_right,
-        mock_configured_from_alias,
-        mock_creating_link,
+        mock_to_rld_direction,
+        mock_events,
         mock_storage,
     ):
         mock_storage.read_persons.return_value = []
@@ -281,15 +285,16 @@ class Test_link_person:
         mock_select_person.has_calls([call(person_1), call(person_2)])
         mock_configure_left.assert_called_once_with(person_1)
         mock_configure_right.assert_called_once_with(person_2)
-        mock_configured_from_alias.has_calls([call(person_3), call(person_4)])
-        mock_creating_link.assert_called_once_with(relationship_definition_1, person_3, person_4)
+        mock_events.configured_from_alias.has_calls([call(person_3), call(person_4)])
+        mock_to_rld_direction.assert_called_once_with(left_person=person_3, right_person=person_4)
+        mock_events.creating_link.assert_called_once_with(relationship_definition_1, person_5, person_6)
         mock_storage.read_persons.assert_called_once_with()
         mock_storage.read_relationships.assert_called_once_with([])
 
         class ExpectedRelationship:
             def __eq__(self, other: Relationship):
                 return (
-                    other.left == person_3 and other.right == person_4 and other.definition == relationship_definition_1
+                    other.left == person_5 and other.right == person_6 and other.definition == relationship_definition_1
                 )
 
         mock_storage.store_relationships([ExpectedRelationship()])

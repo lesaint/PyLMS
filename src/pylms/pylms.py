@@ -206,27 +206,31 @@ def link_persons(natural_language_link_request: str) -> None:
     if link_request is None:
         return
 
-    person_left = _select_person(link_request.left_person_pattern)
-    person_right = _select_person(link_request.right_person_pattern)
+    rq_person_left = _select_person(link_request.left_person_pattern)
+    rq_person_right = _select_person(link_request.right_person_pattern)
 
-    if person_left is None:
+    if rq_person_left is None:
         logger.info(f'No match for "{link_request.left_person_pattern}".')
-    if person_right is None:
+    if rq_person_right is None:
         logger.info(f'No match for "{link_request.right_person_pattern}".')
-    if person_left is None or person_right is None:
+    if rq_person_left is None or rq_person_right is None:
         return
 
     # configure persons from alias, if any
-    configured_person_left = _configure_person(link_request.alias, person_left, "configure_left_person")
-    configured_person_right = _configure_person(link_request.alias, person_right, "configure_right_person")
+    person_left = _configure_person(link_request.alias, rq_person_left, "configure_left_person")
+    person_right = _configure_person(link_request.alias, rq_person_right, "configure_right_person")
+
+    rl_person_left, rl_person_right = link_request.alias.to_relationship_definition_direction(
+        left_person=person_left, right_person=person_right
+    )
 
     # create link
-    events.creating_link(link_request.definition, configured_person_left, configured_person_right)
+    events.creating_link(link_request.definition, rl_person_left, rl_person_right)
     persons = storage.read_persons()
     relationships = storage.read_relationships(persons)
     relationship = Relationship(
-        person_left=configured_person_left,
-        person_right=configured_person_right,
+        person_left=rl_person_left,
+        person_right=rl_person_right,
         definition=link_request.definition,
     )
     storage.store_relationships(relationships + [relationship])

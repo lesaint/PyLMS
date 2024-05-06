@@ -1,3 +1,5 @@
+coverage_threshold = 75
+
 build: format test
 	python3 -m pip install --upgrade setuptools wheel build
 	python3 -m build
@@ -8,9 +10,14 @@ check-format:
 format:
 	python3 -m black src/ tests/
 
-test:
+test-run:
 	coverage run --branch -m pytest
-	coverage report --fail-under=75 -m
+
+test: test-run
+	coverage report --fail-under=$(coverage_threshold) --show-missing
+
+test-ci: test-run
+	coverage xml --fail-under=$(coverage_threshold)
 	
 venv: 
 	python3 -m venv .venv

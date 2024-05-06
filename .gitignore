@@ -11,3 +11,4 @@ __pycache__
 # PyLMS
 persons.db
 relationships.db
+coverage.xml

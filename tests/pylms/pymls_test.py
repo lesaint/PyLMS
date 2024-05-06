@@ -5,7 +5,7 @@ from pylms.pylms import LinkRequest, Relationship, RelationshipDefinition, Relat
 from unittest.mock import patch, call
 
 
-class Test_store_person:
+class TestStorePerson:
 
     @patch("builtins.print")
     @patch("pylms.pylms.storage.read_persons")
@@ -78,7 +78,7 @@ class Test_store_person:
         assert mock_print.call_count == 1
 
 
-class Test_list_persons:
+class TestListPersons:
     @patch("pylms.pylms.ios.list_persons")
     @patch("pylms.pylms.storage.read_relationships")
     @patch("pylms.pylms.storage.read_persons")
@@ -115,7 +115,7 @@ class Test_list_persons:
         mock_list_persons.assert_called_once_with([(person, []) for person in persons])
 
 
-class Test_search_person:
+class TestSearchPerson:
     @patch("builtins.print")
     @patch("pylms.pylms._search_person")
     def test_search_person_no_result(self, mock_search_person, mock_print):
@@ -143,7 +143,7 @@ class Test_search_person:
         mock_show_person.assert_has_calls([call(person) for person in persons])
 
 
-class Test_update_person:
+class TestUpdatePerson:
 
     @patch("pylms.pylms.storage")
     @patch("pylms.pylms._select_person")
@@ -186,32 +186,65 @@ class Test_update_person:
         mock_storage.update_person.assert_called_once_with(updated_person)
 
 
-class Test_delete_person:
+class TestDeletePerson:
 
     @patch("pylms.pylms.storage")
-    @patch("pylms.pylms.events.deleting_person")
+    @patch("pylms.pylms.events")
     @patch("pylms.pylms._select_person")
-    def test_delete_person(self, mock_select, mock_deleting_person, mock_storage):
+    def test_delete_person(self, mock_select, mock_events, mock_storage):
         person1 = Person(1, "foo", "bar")
         person2 = Person(2, "foo", "bar")
         person3 = Person(3, "foo", "bar")
         mock_select.return_value = person3
         mock_storage.read_persons.return_value = [person3, person2, person1]
+        mock_storage.read_relationships.return_value = []
 
         delete_person("p")
 
         mock_select.assert_called_once_with("p")
-        mock_deleting_person.assert_called_once_with(person3)
+        mock_events.deleting_person.assert_called_once_with(person3)
+        assert mock_events.deleting_relationship.call_count == 0
         mock_storage.read_persons.assert_called_once_with()
+        mock_storage.read_relationships.assert_called_once_with([person3, person2, person1])
         mock_storage.store_persons.assert_called_once_with([person2, person1])
+        mock_storage.store_relationships.assert_called_once_with([])
+
+    @patch("pylms.pylms.storage")
+    @patch("pylms.pylms.events")
+    @patch("pylms.pylms._select_person")
+    def test_delete_person_with_relationship(self, mock_select, mock_events, mock_storage):
+        person1 = Person(1, "foo", "bar")
+        person2 = Person(2, "foo", "bar")
+        person3 = Person(3, "foo", "bar")
+        rld1 = RelationshipDefinition("rld1")
+        rld2 = RelationshipDefinition("rld2")
+        rl1 = Relationship(person1, person2, rld1)
+        rl2 = Relationship(person2, person1, rld2)
+        rl3 = Relationship(person2, person3, rld1)
+        rl4 = Relationship(person3, person2, rld2)
+        mock_select.return_value = person3
+        mock_storage.read_persons.return_value = [person3, person2, person1]
+        mock_storage.read_relationships.return_value = [rl4, rl2, rl3, rl1]
+
+        delete_person("p")
+
+        mock_select.assert_called_once_with("p")
+        mock_events.deleting_person.assert_called_once_with(person3)
+        mock_events.deleting_relationship.has_calls([
+            call(rl4, person3), call(rl3, person3)
+        ])
+        mock_storage.read_persons.assert_called_once_with()
+        mock_storage.read_relationships.assert_called_once_with([person3, person2, person1])
+        mock_storage.store_persons.assert_called_once_with([person2, person1])
+        mock_storage.store_relationships.assert_called_once_with([rl2, rl1])
 
     @patch("builtins.print")
     @patch("pylms.pylms.storage")
-    @patch("pylms.pylms.events.deleting_person")
+    @patch("pylms.pylms.events")
     @patch("pylms.pylms.ios.show_person")
     @patch("pylms.pylms._select_person")
     def test_no_person_selected_to_delete(
-        self, mock_select, mock_show_person, mock_creating_person, mock_storage, mock_print
+        self, mock_select, mock_show_person, mock_events, mock_storage, mock_print
     ):
         mock_select.return_value = None
 
@@ -219,7 +252,8 @@ class Test_delete_person:
 
         mock_select.assert_called_once_with("p")
         assert mock_show_person.call_count == 0
-        assert mock_creating_person.call_count == 0
+        assert mock_events.deleting_person.call_count == 0
+        assert mock_events.deleting_relationship.call_count == 0
         assert mock_storage.call_count == 0
         assert mock_print.call_count == 0
 
@@ -233,7 +267,7 @@ person_5 = Person(person_id=3, firstname="Jane3")
 person_6 = Person(person_id=4, firstname="Tarzan3")
 
 
-class Test_link_person:
+class TestLinkPerson:
 
     def test_empty_request(self):
         assert link_persons("") is None

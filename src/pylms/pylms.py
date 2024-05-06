@@ -47,6 +47,14 @@ class EventListener(ABC):
     def configured_from_alias(self, person: Person, alias: RelationshipAlias) -> None:
         pass
 
+    @abstractmethod
+    def deleting_relationship(self, relationship, person: Person | None) -> None:
+        """
+        :param relationship:
+        :param person: the person of the relationship for whom it is being deleted
+        """
+        pass
+
 
 ios: IOs
 events: EventListener
@@ -129,11 +137,17 @@ def delete_person(pattern: str) -> None:
     if not person_to_delete:
         return
 
-    events.deleting_person(person_to_delete)
-
     persons = storage.read_persons()
+    relationships = storage.read_relationships(persons[:])
+
+    events.deleting_person(person_to_delete)
     persons.remove(person_to_delete)
+    for relationship in relationships[:]:
+        if relationship.right == person_to_delete or relationship.left == person_to_delete:
+            events.deleting_relationship(relationship, person_to_delete)
+            relationships.remove(relationship)
     storage.store_persons(persons)
+    storage.store_relationships(relationships)
 
 
 class LinkRequest:

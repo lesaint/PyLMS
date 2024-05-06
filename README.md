@@ -75,7 +75,7 @@ How to build
 1. `make venv`
 2. `source .venv/bin/activate`
 3. `make install`
-4 `make test`
+4. `make test`
 
 
 How to run and develop

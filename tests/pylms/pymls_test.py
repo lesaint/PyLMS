@@ -230,9 +230,7 @@ class TestDeletePerson:
 
         mock_select.assert_called_once_with("p")
         mock_events.deleting_person.assert_called_once_with(person3)
-        mock_events.deleting_relationship.has_calls([
-            call(rl4, person3), call(rl3, person3)
-        ])
+        mock_events.deleting_relationship.has_calls([call(rl4, person3), call(rl3, person3)])
         mock_storage.read_persons.assert_called_once_with()
         mock_storage.read_relationships.assert_called_once_with([person3, person2, person1])
         mock_storage.store_persons.assert_called_once_with([person2, person1])
@@ -243,9 +241,7 @@ class TestDeletePerson:
     @patch("pylms.pylms.events")
     @patch("pylms.pylms.ios.show_person")
     @patch("pylms.pylms._select_person")
-    def test_no_person_selected_to_delete(
-        self, mock_select, mock_show_person, mock_events, mock_storage, mock_print
-    ):
+    def test_no_person_selected_to_delete(self, mock_select, mock_show_person, mock_events, mock_storage, mock_print):
         mock_select.return_value = None
 
         delete_person("p")

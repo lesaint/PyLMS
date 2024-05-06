@@ -27,7 +27,7 @@ jobs:
           make check-format
     - name: tests
       run: |
-        make test
+        make test-ci
     - name: SonarCloud Scan
       uses: SonarSource/sonarcloud-github-action@master
       env:

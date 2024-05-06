@@ -81,7 +81,7 @@ How to build
 How to run and develop
 ----------------------
 
-1. `pip install -e`
+1. see [build](#how-to-build)
 2. `pylms`
 
 Code quality

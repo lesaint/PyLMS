@@ -25,6 +25,6 @@ venv:
 
 install:
 	pip install -r requirements.txt
-	pip install . 
+	pip install --editable .
 
 .PHONY: test format build

@@ -1,12 +1,14 @@
 from pylms.cli import CLI
-from pylms.pylms import Person
+from pylms.pylms import Person, RelationshipDefinition, Relationship
 from pytest import raises, mark
 from unittest.mock import patch, call
+
+CTRL_C_TO_EXIT = "CTRL+C to exit"
 
 under_test = CLI()
 
 
-class Test_list_persons:
+class TestListPersons:
 
     @patch("builtins.print")
     def test_no_persons(self, mock_print):
@@ -48,7 +50,7 @@ class Test_list_persons:
         assert mock_print.call_count == 0
 
 
-class Test_interactive_person_id:
+class TestInteractivePersonId:
 
     def test_sanity_check(self):
         with raises(ValueError, match="valid_ids can not be empty."):
@@ -64,7 +66,7 @@ class Test_interactive_person_id:
         assert res == 1
 
 
-class Test_interactive_hit_enter:
+class TestInteractiveHitEnter:
 
     @patch("builtins.input")
     def test_interactive_hit_enter_straight_correct_input(self, mock_input):
@@ -85,7 +87,7 @@ class Test_interactive_hit_enter:
         assert mock_input.call_count == 4
 
 
-class Test_update_person:
+class TestUpdatePerson:
     @patch("builtins.print")
     @patch.object(under_test, "_get_person_details")
     @patch.object(under_test, "show_person")
@@ -103,7 +105,7 @@ class Test_update_person:
         mock_print.assert_has_calls(
             [
                 call("Input new first name and last name to update:"),
-                call("CTRL+C to exit"),
+                call(CTRL_C_TO_EXIT),
             ]
         )
 
@@ -150,10 +152,32 @@ class Test_update_person:
         assert res.firstname == "foo"
         assert res.lastname == "bar"
         assert mock_input.call_count == 2
-        mock_print.has_calls(
+        mock_print.assert_has_calls(
             [
                 call("Input new first name and last name to update:"),
-                call("CTRL+C to exit"),
+                call(CTRL_C_TO_EXIT),
                 call("Too many words."),
             ]
         )
+
+
+class TestDeletingRelationship:
+    @patch("builtins.print")
+    @patch.object(under_test, "_interactive_hit_enter")
+    def test_left_person(self, mock_hit_enter, mock_print):
+        person1 = Person(1, "Seb", "King")
+        person2 = Person(2, "Mario", "Bros")
+        rld = RelationshipDefinition(name="rld")
+        rl1 = Relationship(person1, person2, rld)
+
+        under_test.deleting_relationship(rl1, person1)
+
+        mock_print.assert_has_calls(
+            [
+                call("Hit ENTER to delete:"),
+                call("    -> rld de (2) Mario Bros"),
+                call(CTRL_C_TO_EXIT),
+            ]
+        )
+        assert mock_print.call_count == 3
+        mock_hit_enter.assert_called_once_with()

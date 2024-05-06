@@ -16,13 +16,17 @@ class CLI(IOs, EventListener):
             f"({created.year}-{created.month}-{created.day} {created.hour}-{created.minute}-{created.second})",
         )
 
+    @staticmethod
+    def _show_relationship_of(*, relationship: Relationship, person: Person) -> None:
+        other = relationship.right if relationship.left == person else relationship.left
+        print(f"    -> {relationship.repr_for(person)} de ({other.person_id}) {other}")
+
     def list_persons(self, resolved_persons: list[(Person, list[Relationship])]) -> None:
         if resolved_persons:
             for person, rs in sorted(resolved_persons, key=lambda t: t[0].person_id):
                 self.show_person(person)
                 for r in rs:
-                    other = r.right if r.left == person else r.left
-                    print(f"    -> {r.repr_for(person)} de ({other.person_id}) {other}")
+                    self._show_relationship_of(relationship=r, person=person)
         else:
             print("No Person registered yet.")
 
@@ -62,7 +66,7 @@ class CLI(IOs, EventListener):
         print("Input id of person to update:")
         for person in sorted(persons, key=lambda p: p.person_id):
             self.show_person(person)
-        print("CTRL+C to exit")
+        self._print_how_to_interrupt()
 
         person_id = self._interactive_person_id([person.person_id for person in persons])
         for person in persons:
@@ -75,7 +79,7 @@ class CLI(IOs, EventListener):
     def update_person(self, person_to_update: Person) -> Person:
         print("Input new first name and last name to update:")
         self.show_person(person_to_update)
-        print("CTRL+C to exit")
+        self._print_how_to_interrupt()
 
         firstname: str
         lastname: str
@@ -85,6 +89,10 @@ class CLI(IOs, EventListener):
         person_to_update.lastname = lastname
 
         return person_to_update
+
+    @staticmethod
+    def _print_how_to_interrupt():
+        print("CTRL+C to exit")
 
     def _get_person_details(self) -> tuple[str, str | None]:
         while True:
@@ -102,14 +110,20 @@ class CLI(IOs, EventListener):
     def deleting_person(self, person_to_delete: Person) -> None:
         print("Hit ENTER to delete:")
         self.show_person(person_to_delete)
-        print("CTRL+C to exit")
+        self._print_how_to_interrupt()
+        self._interactive_hit_enter()
+
+    def deleting_relationship(self, relationship: Relationship, person: Person) -> None:
+        print("Hit ENTER to delete:")
+        self._show_relationship_of(relationship=relationship, person=person)
+        self._print_how_to_interrupt()
         self._interactive_hit_enter()
 
     def creating_link(self, rl_definition: RelationshipDefinition, person_left: Person, person_right: Person) -> None:
         print(f'Hit ENTER to link as "{rl_definition.name}":')
         self.show_person(person_left)
         self.show_person(person_right)
-        print("CTRL+C to exit")
+        self._print_how_to_interrupt()
         self._interactive_hit_enter()
 
     def configured_from_alias(self, person: Person, alias: RelationshipAlias) -> None:

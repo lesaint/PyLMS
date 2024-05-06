@@ -57,6 +57,11 @@ Usage
 Development
 ===========
 
+Status
+------
+
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=lesaint_PyLMS&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=lesaint_PyLMS)
+
 Requirements
 ------------
 

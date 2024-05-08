@@ -19,7 +19,7 @@ class CLI(IOs, EventListener):
     @staticmethod
     def _show_relationship_of(*, relationship: Relationship, person: Person) -> None:
         other = relationship.right if relationship.left == person else relationship.left
-        print(f"    -> {relationship.repr_for(person)} de ({other.person_id}) {other}")
+        print(f"    -> {relationship.repr_for(person)} ({other.person_id}) {other}")
 
     def list_persons(self, resolved_persons: list[(Person, list[Relationship])]) -> None:
         if resolved_persons:

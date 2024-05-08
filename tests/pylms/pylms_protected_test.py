@@ -75,8 +75,8 @@ relationship_definition_1 = RelationshipDefinition(
         RelationshipAlias("bbb"),
         RelationshipAlias("ccc"),
     ],
-    person_left_repr="leftFoo",
-    person_right_repr="rightFoo",
+    person_left_default_repr="leftFoo",
+    person_right_default_repr="rightFoo",
 )
 relationship_definition_2 = RelationshipDefinition(
     name="bar",
@@ -85,7 +85,7 @@ relationship_definition_2 = RelationshipDefinition(
         RelationshipAlias("22"),
         RelationshipAlias("33"),
     ],
-    person_left_repr="leftBar",
+    person_left_default_repr="leftBar",
 )
 relationship_definition_3 = RelationshipDefinition(
     name="acme",

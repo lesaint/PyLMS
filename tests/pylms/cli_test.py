@@ -167,7 +167,7 @@ class TestDeletingRelationship:
     def test_left_person(self, mock_hit_enter, mock_print):
         person1 = Person(1, "Seb", "King")
         person2 = Person(2, "Mario", "Bros")
-        rld = RelationshipDefinition(name="rld")
+        rld = RelationshipDefinition(name="rld de")
         rl1 = Relationship(person1, person2, rld)
 
         under_test.deleting_relationship(rl1, person1)

@@ -1,4 +1,10 @@
 import datetime
+import logging
+from pylms.python_utils import require_not_none, first_not_none
+
+COPAIN_COPINE_DEFAULT_NAME = "copain de"
+
+logger = logging.getLogger(__name__)
 
 
 class Sex:
@@ -112,6 +118,18 @@ class RelationshipAlias:
     def name(self) -> str:
         return self._name
 
+    @property
+    def left_person_sex(self) -> Sex | None:
+        return self._left_person_sex
+
+    @property
+    def right_person_sex(self) -> Sex | None:
+        return self._right_person_sex
+
+    @property
+    def reverse(self):
+        return self._reverse
+
     def configure_left_person(self, person: Person) -> Person | None:
         if person.sex is None and self._left_person_sex is not None:
             person.sex = self._left_person_sex
@@ -135,13 +153,13 @@ class RelationshipDefinition:
         self,
         name: str,
         aliases: list[RelationshipAlias] = None,
-        person_left_repr: str = None,
-        person_right_repr: str = None,
+        person_left_default_repr: str = None,
+        person_right_default_repr: str = None,
         directional: bool = False,
     ) -> None:
-        self._name: str = name
-        self._person_left_repr: str = name if person_left_repr is None else person_left_repr
-        self._person_right_repr: str = name if person_right_repr is None else person_right_repr
+        self._name: str = require_not_none(name, "name can't be None")
+        self._person_left_default_repr: str = name if person_left_default_repr is None else person_left_default_repr
+        self._person_right_default_repr: str = name if person_right_default_repr is None else person_right_default_repr
         self._aliases: list[RelationshipAlias] = [] if aliases is None else aliases[:]
         self._directional: bool = directional
 
@@ -157,18 +175,32 @@ class RelationshipDefinition:
     def directional(self) -> bool:
         return self._directional
 
+    def _find_alias(self, reverse: bool, sex: Sex | None) -> RelationshipAlias | None:
+        aliases = [alias for alias in self._aliases if alias.reverse == reverse and alias.left_person_sex == sex]
+        if len(aliases) > 1:
+            logger.warning(f"More than one alias found for reverse={reverse} and sex={sex}")
+        if aliases:
+            return aliases[0]
+        return None
+
     def left_repr(self, person: Person) -> str:
-        return self._person_left_repr
+        alias = self._find_alias(reverse=False, sex=person.sex)
+        if alias:
+            return alias.name
+        return first_not_none(self._person_left_default_repr, self._name)
 
     def right_repr(self, person: Person) -> str:
-        return self._person_right_repr
+        alias = self._find_alias(reverse=True, sex=person.sex)
+        if alias:
+            return alias.name
+        return first_not_none(self._person_right_default_repr, self._name)
 
     def __repr__(self) -> str:
         return self._name
 
 
 parent_enfant = RelationshipDefinition(
-    name="Parent/Enfant",
+    name="parent/enfant de",
     aliases=[
         RelationshipAlias("père de", left_person_sex=MALE),
         RelationshipAlias("mère de", left_person_sex=FEMALE),
@@ -177,19 +209,19 @@ parent_enfant = RelationshipDefinition(
         RelationshipAlias("parent de"),
         RelationshipAlias("enfant de", reverse=True),
     ],
-    person_left_repr="parent",
-    person_right_repr="enfant",
+    person_left_default_repr="parent de",
+    person_right_default_repr="enfant de",
     directional=True,
 )
 
 copain_copine = RelationshipDefinition(
-    name="Copain/Copine",
+    name="copain/copine de",
     aliases=[
-        RelationshipAlias("copain de", left_person_sex=MALE),
+        RelationshipAlias(COPAIN_COPINE_DEFAULT_NAME, left_person_sex=MALE),
         RelationshipAlias("copine de", left_person_sex=FEMALE),
     ],
-    person_left_repr="copain",
-    person_right_repr="copain",
+    person_left_default_repr=COPAIN_COPINE_DEFAULT_NAME,
+    person_right_default_repr=COPAIN_COPINE_DEFAULT_NAME,
 )
 
 relationship_definitions: list[RelationshipDefinition] = [parent_enfant, copain_copine]

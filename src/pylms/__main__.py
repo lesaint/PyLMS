@@ -3,7 +3,8 @@
 import logging
 from sys import argv
 import pylms.pylms
-from pylms.pylms import list_persons, store_person, update_person, delete_person, link_persons, ExitPyLMS
+from pylms.pylms import list_persons, store_person, update_person, delete_person, link_persons, search_persons
+from pylms.pylms import ExitPyLMS
 from pylms.cli import CLI
 
 
@@ -35,6 +36,10 @@ def _read_and_execute_commands() -> None:
 
     if argv[1].lower() == "link":
         _command_link(argv_length)
+        return
+
+    if argv[1].lower() == "search":
+        _command_search(argv_length)
         return
 
     _command_create(argv_length)
@@ -83,6 +88,13 @@ def _command_link(argv_length: int) -> None:
 
     natural_link_request = " ".join(argv[2:])
     link_persons(natural_link_request)
+
+
+def _command_search(argv_length: int) -> None:
+    if argv_length != 3:
+        print(f"Wrong number of arguments ({argv_length})")
+    natural_search_request = " ".join(argv[2:])
+    search_persons(natural_search_request)
 
 
 if __name__ == "__main__":

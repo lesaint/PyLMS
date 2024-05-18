@@ -1,6 +1,7 @@
 import datetime
 import logging
 from pylms.python_utils import require_not_none, first_not_none
+from typing import Callable
 
 COPAIN_COPINE_DEFAULT_NAME = "copain de"
 
@@ -260,5 +261,22 @@ class Relationship:
         raise ValueError(f"{person} is neither the left nor right person of this {self._definition.name} relationship")
 
 
-def resolve_persons(persons: list[Person], relationships: list[Relationship]) -> list[(Person, list[Relationship])]:
-    return [(person, list(filter(lambda r: r.applies_to(person), relationships))) for person in persons]
+def resolve_persons(
+    persons: list[Person],
+    relationships: list[Relationship],
+    person_filter: Callable[[Person], bool] = None,
+    relationship_filter: Callable[[Person, Relationship], bool] = None,
+) -> list[(Person, list[Relationship])]:
+    def accepts_all(*_: any):
+        return True
+
+    person_filter: Callable[[Person], bool] = person_filter if person_filter else accepts_all
+    relationship_filter: Callable[[Person, Relationship], bool] = (
+        relationship_filter if relationship_filter else accepts_all
+    )
+
+    return [
+        (person, list(filter(lambda r, p=person: r.applies_to(p) and relationship_filter(p, r), relationships)))
+        for person in persons
+        if person_filter(person)
+    ]

@@ -1,5 +1,7 @@
+import random
+
 from pylms.core import Person
-from pylms.pylms import list_persons, store_person, update_person, delete_person, link_persons
+from pylms.pylms import list_persons, store_person, update_person, search_persons, delete_person, link_persons
 from pylms.pylms import LinkRequest, Relationship, RelationshipDefinition, RelationshipAlias
 from unittest.mock import patch, call
 
@@ -297,3 +299,51 @@ class TestLinkPerson:
                 )
 
         mock_storage.store_relationships([ExpectedRelationship()])
+
+
+class TestSearchPerson:
+
+    @patch("pylms.pylms.logger")
+    @patch("pylms.pylms._search_persons")
+    def test_only_info_log_if_no_match(self, mock_search_persons, mock_logger):
+        mock_search_persons.return_value = []
+        pattern = "p"
+
+        search_persons(pattern)
+
+        mock_search_persons.assert_called_once_with(pattern)
+        mock_logger.info.assert_called_once_with(f'No match for "{pattern}".')
+
+    @patch("pylms.pylms.ios")
+    @patch("pylms.pylms.storage")
+    @patch("pylms.pylms.logger")
+    @patch("pylms.pylms._search_persons")
+    def test_list_persons_limited_to_the_person_matching_pattern(
+        self,
+        mock_search_persons,
+        mock_logger,
+        mock_storage,
+        mock_ios,
+    ):
+        rls = [
+            Relationship(person_1, person_2, relationship_definition_1),
+            Relationship(person_2, person_3, relationship_definition_1),
+            Relationship(person_2, person_4, relationship_definition_1),
+            Relationship(person_3, person_4, relationship_definition_1),
+            Relationship(person_3, person_1, relationship_definition_1),
+            Relationship(person_4, person_1, relationship_definition_1),
+        ]
+        persons = [person_1, person_2, person_3, person_4]
+
+        mock_search_persons.return_value = [person_1]
+        mock_storage.read_persons.return_value = persons
+        mock_storage.read_relationships.return_value = rls
+        pattern = "p"
+
+        search_persons(pattern)
+
+        mock_search_persons.assert_called_once_with(pattern)
+        assert mock_logger.call_count == 0
+        mock_storage.read_persons.assert_called_once_with()
+        mock_storage.read_relationships.assert_called_once_with(persons)
+        mock_ios.list_persons.assert_called_once_with([(person_1, [rls[0], rls[4], rls[5]])])

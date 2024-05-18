@@ -18,7 +18,7 @@ class IOs(ABC):
         pass
 
     @abstractmethod
-    def list_persons(self, persons: list[Person]) -> None:
+    def list_persons(self, persons: list[(Person, list[Relationship])]) -> None:
         pass
 
     @abstractmethod

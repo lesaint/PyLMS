@@ -239,3 +239,29 @@ def link_persons(natural_language_link_request: str) -> None:
         definition=link_request.definition,
     )
     storage.store_relationships(relationships + [relationship])
+
+
+def search_persons(pattern: str) -> None:
+    person_hits = _search_persons(pattern)
+
+    if not person_hits:
+        logger.info(f'No match for "{pattern}".')
+        return
+
+    persons = storage.read_persons()
+
+    resolved_persons = []
+    if persons:
+        relationships = storage.read_relationships(persons)
+
+        def p_filter(p: Person) -> bool:
+            return p in person_hits
+
+        def rl_filter(p: Person, _: Relationship) -> bool:
+            return p in person_hits
+
+        resolved_persons = resolve_persons(
+            persons=persons, relationships=relationships, person_filter=p_filter, relationship_filter=rl_filter
+        )
+
+    ios.list_persons(resolved_persons)

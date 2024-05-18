@@ -92,11 +92,6 @@ def update_person(pattern: str) -> None:
     storage.update_person(updated_person)
 
 
-def search_person(pattern: str) -> None:
-    for person in _search_person(pattern):
-        ios.show_person(person)
-
-
 def _search_person(pattern: str) -> list[Person]:
     persons = storage.read_persons()
 

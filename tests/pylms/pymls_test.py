@@ -1,6 +1,5 @@
-from datetime import datetime
 from pylms.core import Person
-from pylms.pylms import list_persons, store_person, search_person, update_person, delete_person, link_persons
+from pylms.pylms import list_persons, store_person, update_person, delete_person, link_persons
 from pylms.pylms import LinkRequest, Relationship, RelationshipDefinition, RelationshipAlias
 from unittest.mock import patch, call
 
@@ -113,34 +112,6 @@ class TestListPersons:
         mock_read_persons.assert_called_once_with()
         mock_read_relationships.assert_called_once_with(persons)
         mock_list_persons.assert_called_once_with([(person, []) for person in persons])
-
-
-class TestSearchPerson:
-    @patch("builtins.print")
-    @patch("pylms.pylms._search_person")
-    def test_search_person_no_result(self, mock_search_person, mock_print):
-        mock_search_person.return_value = []
-
-        search_person("p")
-
-        mock_search_person.assert_called_once_with("p")
-        assert mock_print.call_count == 0
-
-    @patch("pylms.pylms.ios.show_person")
-    @patch("pylms.pylms._search_person")
-    def test_search_person_results(self, mock_search_person, mock_show_person):
-        persons = [
-            Person(3, "Bob"),
-            Person(1, "Seb"),
-            Person(2, "MarioEb"),
-        ]
-        mock_search_person.return_value = persons
-
-        search_person("p")
-
-        mock_search_person.assert_called_once_with("p")
-        assert mock_show_person.call_count == 3
-        mock_show_person.assert_has_calls([call(person) for person in persons])
 
 
 class TestUpdatePerson:

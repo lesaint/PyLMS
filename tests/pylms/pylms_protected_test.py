@@ -1,13 +1,13 @@
 from pylms.core import Person
 from pylms.core import RelationshipDefinition, RelationshipAlias
-from pylms.pylms import _search_person, _select_person
+from pylms.pylms import _search_persons, _select_person
 from pylms.pylms import _parse_nl_link_request
 from pytest import mark
 from unittest.mock import patch, call
 
 
 @patch("pylms.pylms.storage")
-def test_search_person(mock_storage):
+def test_search_persons(mock_storage):
     persons = [
         Person(3, "Bob"),
         Person(1, "Seb"),
@@ -15,17 +15,17 @@ def test_search_person(mock_storage):
     ]
     mock_storage.read_persons.return_value = persons
 
-    assert _search_person("bob") == [persons[0]]
-    assert _search_person("BOB") == [persons[0]]
-    assert _search_person("eb") == [persons[1], persons[2]]
-    assert _search_person("bob") == [persons[0]]
-    assert _search_person("foo") == []
+    assert _search_persons("bob") == [persons[0]]
+    assert _search_persons("BOB") == [persons[0]]
+    assert _search_persons("eb") == [persons[1], persons[2]]
+    assert _search_persons("bob") == [persons[0]]
+    assert _search_persons("foo") == []
 
 
 class Test_select_person:
 
     @patch("builtins.print")
-    @patch("pylms.pylms._search_person")
+    @patch("pylms.pylms._search_persons")
     def test_no_match(self, mock_search_person, mock_print):
         mock_search_person.return_value = []
 
@@ -37,7 +37,7 @@ class Test_select_person:
         assert mock_print.call_count == 0
 
     @patch("builtins.print")
-    @patch("pylms.pylms._search_person")
+    @patch("pylms.pylms._search_persons")
     def test_one_match(self, mock_search_person, mock_print):
         person = Person(123, "John", "Wick")
         mock_search_person.return_value = [person]
@@ -50,7 +50,7 @@ class Test_select_person:
         assert mock_print.call_count == 0
 
     @patch("pylms.pylms.ios.select_person")
-    @patch("pylms.pylms._search_person")
+    @patch("pylms.pylms._search_persons")
     def test_several_matches(self, mock_search_person, mock_select_person):
         persons = [
             Person(3, "Bob"),

@@ -72,7 +72,7 @@ def list_persons() -> None:
 
 
 def _select_person(pattern: str) -> Person | None:
-    persons = _search_person(pattern)
+    persons = _search_persons(pattern)
     if not persons:
         return
 
@@ -92,7 +92,7 @@ def update_person(pattern: str) -> None:
     storage.update_person(updated_person)
 
 
-def _search_person(pattern: str) -> list[Person]:
+def _search_persons(pattern: str) -> list[Person]:
     persons = storage.read_persons()
 
     res = []

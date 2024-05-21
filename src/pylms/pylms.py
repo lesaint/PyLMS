@@ -56,8 +56,8 @@ class EventListener(ABC):
         pass
 
 
-ios: IOs
-events: EventListener
+ios: IOs | None = None
+events: EventListener | None = None
 
 
 def list_persons() -> None:

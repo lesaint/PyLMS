@@ -85,14 +85,17 @@ def _command_delete(argv_length: int) -> None:
 def _command_link(argv_length: int) -> None:
     if argv_length < 4:
         print(f"Too few arguments ({argv_length -1})")
+        return
 
     natural_link_request = " ".join(argv[2:])
     link_persons(natural_link_request)
 
 
 def _command_search(argv_length: int) -> None:
-    if argv_length != 3:
-        print(f"Wrong number of arguments ({argv_length})")
+    if argv_length < 3:
+        print(f"Too few arguments ({argv_length})")
+        return
+
     natural_search_request = " ".join(argv[2:])
     search_persons(natural_search_request)
 

@@ -2,6 +2,7 @@ from pylms import storage
 from pylms.core import Person, PersonIdGenerator
 from pylms.core import relationship_definitions, RelationshipDefinition, Relationship, RelationshipAlias
 from pylms.core import resolve_persons
+from pylms.python_utils import require_not_none
 from abc import abstractmethod, ABC
 import logging
 
@@ -160,39 +161,100 @@ class LinkRequest:
         self.alias: RelationshipAlias = alias
 
 
-def _find_relation_ship(natural_language_link_order: str) -> tuple[RelationshipDefinition, RelationshipAlias] | None:
-    if len(natural_language_link_order) == 0:
+class SearchRequest:
+    def __init__(
+        self,
+        *,
+        pattern: str,
+        definition: RelationshipDefinition | None = None,
+        alias: RelationshipAlias | None = None,
+    ):
+        self.pattern = require_not_none(pattern, "pattern can't be None")
+        if (definition is None) != (alias is None):
+            raise ValueError("Either both definition and alias must be provided or neither of them")
+        self.definition: RelationshipDefinition | None = definition
+        self.alias: RelationshipAlias | None = alias
+
+
+class RelationshipPattern:
+    def __init__(
+        self,
+        *,
+        pattern_before: str | None,
+        definition: RelationshipDefinition | None = None,
+        alias: RelationshipAlias | None = None,
+        pattern_after: str,
+    ):
+        """
+        Neither pattern_before nor pattern_after are trimmed.
+        """
+        self.pattern_before: str | None = pattern_before
+        self.definition: RelationshipDefinition | None = definition
+        self.alias: RelationshipAlias | None = alias
+        self.pattern_after: str | None = pattern_after
+
+
+def _find_relationship_by_alias(
+    definition: RelationshipDefinition, alias: RelationshipAlias, request: str
+) -> RelationshipPattern | None:
+    name = alias.name.lower()
+    try:
+        index = request.index(name)
+        return RelationshipPattern(
+            pattern_before=request[0:index],
+            definition=definition,
+            alias=alias,
+            pattern_after=request[index + len(name) :],
+        )
+    except ValueError:
         return None
 
-    natural_language_link_order: str = natural_language_link_order.lower()
+
+def _find_relationship_pattern(request: str) -> RelationshipPattern | None:
+    if len(request) == 0:
+        return None
+
+    request: str = request.lower()
 
     for rl in relationship_definitions:
         for alias in rl.aliases:
-            if alias.name.lower() in natural_language_link_order:
-                return rl, alias
+            rl_pattern = _find_relationship_by_alias(rl, alias, request)
+            if rl_pattern:
+                return rl_pattern
 
     return None
 
 
 def _parse_nl_link_request(natural_language_link_request: str) -> LinkRequest | None:
-    match = _find_relation_ship(natural_language_link_request)
-    if match is None:
+    rl_pattern = _find_relationship_pattern(natural_language_link_request)
+    if rl_pattern is None:
         return None
-    definition, alias = match
 
-    person_patterns = list(
-        filter(lambda s: len(s) > 0, map(str.strip, natural_language_link_request.split(alias.name)))
-    )
-    patterns_count = len(person_patterns)
-    if patterns_count != 2:
-        logger.error(f"Unsupported link request: wrong number of person patterns ({patterns_count})")
+    pattern_before = rl_pattern.pattern_before.strip() if rl_pattern.pattern_before else None
+    pattern_after = rl_pattern.pattern_after.strip() if rl_pattern.pattern_after else None
+    if not pattern_before or not pattern_after:
+        logger.error("Unsupported link request: wrong number of person patterns")
         return None
 
     return LinkRequest(
-        left_person_pattern=person_patterns[0],
-        right_person_pattern=person_patterns[1],
-        definition=definition,
-        alias=alias,
+        left_person_pattern=pattern_before,
+        right_person_pattern=pattern_after,
+        definition=rl_pattern.definition,
+        alias=rl_pattern.alias,
+    )
+
+
+def _parse_search_request(search_request: str) -> SearchRequest | None:
+    rl_pattern = _find_relationship_pattern(search_request)
+    if rl_pattern is None:
+        return SearchRequest(pattern=search_request)
+
+    if rl_pattern.pattern_before:
+        logger.error(f"Unsupported relationship search request has prefix: {rl_pattern.pattern_before}")
+        return None
+
+    return SearchRequest(
+        pattern=rl_pattern.pattern_after.strip(), definition=rl_pattern.definition, alias=rl_pattern.alias
     )
 
 
@@ -241,11 +303,47 @@ def link_persons(natural_language_link_request: str) -> None:
     storage.store_relationships(relationships + [relationship])
 
 
-def search_persons(pattern: str) -> None:
-    person_hits = _search_persons(pattern)
+def _rl_match(search_request: SearchRequest, rl: Relationship) -> bool:
+    """
+    Test whether the provided Relationship match the SearchRequest.
+    First, a matching relationship must have the same definition as the SearchRequest.
+    Then, the SearchRequest can have a forward (eg. "Père de Peter")  or a reverse alias (eg. "Fils de John").
+    In the former case, a matching relationship must have the _right_ person matching the pattern ("Peter"),
+    in the later case a matching relationship must have the _left_ person matching the pattern ("John" this time).
+    Finally, the alias in the SearchRequest can have a left person sex. If so, the person must also have the same sex.
+    """
+    if rl.definition != search_request.definition:
+        return False
+
+    person_to_match_pattern, person_to_match_sex = rl.right, rl.left
+    if search_request.alias.reverse:
+        person_to_match_pattern, person_to_match_sex = rl.left, rl.right
+    if _search_match(search_request.pattern, person_to_match_pattern):
+        expected_sex = search_request.alias.left_person_sex
+        if expected_sex:
+            return person_to_match_sex.sex == expected_sex
+        return True
+
+    return False
+
+
+def _search_request_relationship(search_request: SearchRequest) -> list[Person]:
+    persons = storage.read_persons()
+    relationships = storage.read_relationships(persons)
+
+    return [r.right if search_request.alias.reverse else r.left for r in relationships if _rl_match(search_request, r)]
+
+
+def search_persons(search_request_string: str) -> None:
+    search_request = _parse_search_request(search_request_string)
+
+    if search_request.definition:
+        person_hits = _search_request_relationship(search_request)
+    else:
+        person_hits = _search_persons(search_request_string)
 
     if not person_hits:
-        logger.info(f'No match for "{pattern}".')
+        logger.info(f'No match for "{search_request_string}".')
         return
 
     persons = storage.read_persons()

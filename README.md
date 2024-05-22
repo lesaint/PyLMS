@@ -46,7 +46,9 @@ Usage
 =====
 
 * to list all Persons and Relationships: `pylms`
-* create a Person `pylms John Doe` or `pylms John`
+* to filter the above to a Person (or Persons) which first name and/or last name contain a specific word: `pylms john`
+  * search is case-insensitive and accent-sensitive
+* to create a Person `pylms create John Doe` or `pylms create John`
    * supports first name (single word) alone or first name and last name separated by a blank space 
 * to create a relationship `pylms link John Doe père de Tony Doe` or `pylms link John père de Tony`
    * "père de" is an example of a Relationship alias and is looked up to tell apart the Persons in the linking request 

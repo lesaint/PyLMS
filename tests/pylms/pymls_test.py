@@ -376,7 +376,7 @@ class TestSearchPersonByRelationship:
     @mark.parametrize(
         ("search_request", "expected"),
         [
-            ("parent de emma", [(john, [relationships[0], relationships[1],relationships[3]])]),
+            ("parent de emma", [(john, [relationships[0], relationships[1], relationships[3]])]),
             (
                 "enfant de John",
                 [(peter, [relationships[0]]), (emma, [relationships[1], relationships[2]]), (tom, [relationships[3]])],
@@ -385,7 +385,10 @@ class TestSearchPersonByRelationship:
             ("fils de John", [(tom, [relationships[3]])]),
             ("mère de bill", [(dona, [relationships[4]]), (princess, [relationships[6]])]),
             ("père de bill", [(elmer, [relationships[5]])]),
-            ("parent de bill", [(dona, [relationships[4]]), (elmer, [relationships[5]]), (princess, [relationships[6]])]),
+            (
+                "parent de bill",
+                [(dona, [relationships[4]]), (elmer, [relationships[5]]), (princess, [relationships[6]])],
+            ),
         ],
     )
     def test_search_successful(self, mock_storage, mock_ios, search_request, expected):
@@ -405,14 +408,7 @@ class TestSearchPersonByRelationship:
     @patch("pylms.pylms.storage")
     @mark.parametrize(
         "search_request",
-        [
-            "père de emma",
-            "mère de peter",
-            "parent de carine",
-            "fils de Elmer",
-            "fils de Dona",
-            "fils de princess"
-        ],
+        ["père de emma", "mère de peter", "parent de carine", "fils de Elmer", "fils de Dona", "fils de princess"],
     )
     def test_no_matching_relationship(self, mock_storage, mock_logger, mock_ios, search_request):
         mock_storage.read_persons.return_value = self.persons

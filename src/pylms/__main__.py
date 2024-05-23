@@ -1,6 +1,7 @@
 #!/bin/env python3
 
 import logging
+import sys
 from sys import argv
 import pylms.pylms
 from pylms.pylms import list_persons, store_person, update_person, delete_person, link_persons, search_persons

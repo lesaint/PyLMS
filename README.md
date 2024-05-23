@@ -69,6 +69,8 @@ Requirements
 
 * `Python3`
 * `pip`
+* `Tkinter` and `Tk`
+  * on ubuntu, use `sudo apt-get install python3-tk` 
 * `make`
 
 How to build

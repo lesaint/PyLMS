@@ -26,13 +26,17 @@ jobs:
       run: |
           make check-format
     - name: tests
-      run: |
-        make test-ci
+      uses: coactions/setup-xvfb@v1.0.1
+      with:
+        run: |
+          make test-ci
     - name: SonarCloud Scan
       uses: SonarSource/sonarcloud-github-action@master
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     - name: build
-      run: |
-        make build
+      uses: coactions/setup-xvfb@v1.0.1
+      with:
+        run: |
+          make build

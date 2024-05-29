@@ -5,7 +5,7 @@ build: format test
 	python3 -m build
 
 check-format:
-	python3 -m black --check src/
+	python3 -m black --check src/ tests/
 
 format:
 	python3 -m black src/ tests/

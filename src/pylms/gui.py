@@ -21,6 +21,8 @@ class TkApp:
         self._configure_text_area()
 
     def init_ui(self):
+        self._window.title("PyLMS")
+
         self._entry.bind("<Return>", self._hit_enter)
         self._entry.focus_set()
 

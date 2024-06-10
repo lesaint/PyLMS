@@ -1,15 +1,18 @@
 PyLMS
 =====
 
-`PyLMS` is a utility to cope with personal difficulty to remember people's names and relationships, to me and between each other.
+`PyLMS` is a utility to cope with my personal difficulty to remember people's names and relationships, to me and between each other.
 
 * `Py` stands for `Python`: because this is a learning and practicing technical project: see [Learning with practice](#learning-through-practice)
 * `LMS` stands for "**L**acune **M**émorielle **S**ociale" (French for "Social Memory Gap"): see [How it works](#how-it-works)
 
+> [!NOTE]
+> Afaik. I invented the terms for "LMS" and "Lacune Mémorielle Sociale". Maybe the name and/or the problem is real thing, but I didn't search.
+
 How it works
 ============
 
-When my LMS hits me, the typical questions I ask myself look like:
+When `LMS` hits me, the typical questions I ask myself look like:
 
 * "Comment s'appelle le père de Paul?" (What is Paul's father name, already?")
 * "Qui est la femme de Remi?" (Who is Remi's wife?)

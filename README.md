@@ -20,13 +20,16 @@ When `LMS` hits me, the typical questions I ask myself look like:
 
 These are basically queries on persons ("Paul", "Remi", "Pierre", "me") and relationships ("père de", "femme de", "femmes de").
 
+Principles
+----------
+
 Based on this observation, `PyLMS` stores persons, their relationships and tags in a database. The database is specific to single person (i.e. "me" is implicit).
 
-* Search queries are simplified questions: e.g. "père de Paul", "femme de Remi", "femmes cours d'escalade"
-* Persons and relationships are created with statements too: eg. "Jacques père de Paul", "Emma femme de Remi"
+* Search queries are kind of [telegraphic speech](https://en.wikipedia.org/wiki/Telegraphic_speech): e.g. "père de Paul", "femme de Remi", "femmes cours d'escalade"
+* Persons and relationships are created similarly: eg. "Jacques père de Paul", "Emma femme de Remi"
 * Persons can also be created and edited directly: e.g. to add/remove tags, fix a typo, change name, ...
 * Persons may be Male or Female, to answer queries such as "sœur de" ("sister of") or "fils de" ("son of")
-* Sex is computed from a relationship when it carries the information ("père de" -- "father of" -- does, "parent de" -- "parent of" -- doesn't)
+* Sex is computed from a relationship when it carries the information ("père de" -- "father of" -- does, "enfant de" -- "child of" -- doesn't)
 * Otherwise, it can be edited directly.
 
 How to use

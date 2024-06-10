@@ -76,17 +76,20 @@ Requirements
 How to build
 ------------
 
-1. `make venv`
-2. `source .venv/bin/activate`
-3. `make install`
-4. `make test`
+```shell
+make build
+```
 
 
 How to run and develop
 ----------------------
 
 1. see [build](#how-to-build)
-2. `pylms`
+2. run with:
+    ```shell
+    source .venv/bin/activate
+    pylms
+    ```
 
 Code quality
 ------------

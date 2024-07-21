@@ -3,7 +3,7 @@ PyLMS
 
 `PyLMS` is a utility to cope with my personal difficulty to remember people's names and relationships, to me and between each other.
 
-* `Py` stands for `Python`: because this is a learning and practicing technical project: see [Learning with practice](#learning-through-practice)
+* `Py` stands for `Python`: because this is a learning and practicing project: see [Learning through practice](#learning-through-practice)
 * `LMS` stands for "**L**acune **M**émorielle **S**ociale" (French for "Social Memory Gap"): see [How it works](#how-it-works)
 
 > [!NOTE]
@@ -79,6 +79,11 @@ It supports the same commands as PyLMS CLI (without the `pylms` prefix), but lim
 ![screenshot of PyLMS Gui](docs/images/screenshot_pylms_gui.png)
 
 Simply write in the input field and hit `<Return>`.
+
+Persistence
+-----------
+
+Data is saved into two JSON files in the working directory: `persons.db` and `relationships.db`.
 
 Development
 ===========

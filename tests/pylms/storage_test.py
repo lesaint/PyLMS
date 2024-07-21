@@ -85,7 +85,8 @@ def test_store_one_person_with_lastname_no_sex(tmpdir):
     with file.open("r"):
         assert (
             file.read_text()
-            == '[{"id": 1, "firstname": "Jim", "lastname": "Morisson", "created": "2024-04-05 12:41:09", "sex": null}]'
+            == '[{"id": 1, "firstname": "Jim", "lastname": "Morisson", "created": "2024-04-05 12:41:09", "sex": null, '
+            '"tags": []}]'
         )
 
 
@@ -98,7 +99,40 @@ def test_store_one_person_without_lastname(tmpdir):
         store_persons([person])
 
     with file.open("r"):
-        assert file.read_text() == '[{"id": 2, "firstname": "Jim", "created": "2024-04-05 12:41:58", "sex": "M"}]'
+        assert file.read_text() == (
+            '[{"id": 2, "firstname": "Jim", "created": "2024-04-05 12:41:58", "sex": "M", "tags": []}]'
+        )
+
+
+def test_store_one_person_with_tag(tmpdir):
+    file_name = tmpdir + "foo.db"
+    file = Path(file_name)
+    person = Person(2, "Jim", created=datetime(2024, 4, 5, 12, 41, 58), sex=MALE)
+    person.tags = ["acme"]
+
+    with patch("pylms.storage.persons_file_name", file_name):
+        store_persons([person])
+
+    with file.open("r"):
+        assert file.read_text() == (
+            '[{"id": 2, "firstname": "Jim", "created": "2024-04-05 12:41:58", "sex": "M", "tags": ["acme"]}]'
+        )
+
+
+def test_store_one_person_with_tags(tmpdir):
+    file_name = tmpdir + "foo.db"
+    file = Path(file_name)
+    person = Person(2, "Jim", created=datetime(2024, 4, 5, 12, 41, 58), sex=MALE)
+    person.tags = ["acme", "donut", "peanut"]
+
+    with patch("pylms.storage.persons_file_name", file_name):
+        store_persons([person])
+
+    with file.open("r"):
+        assert file.read_text() == (
+            '[{"id": 2, "firstname": "Jim", "created": "2024-04-05 12:41:58", "sex": "M", '
+            '"tags": ["acme", "donut", "peanut"]}]'
+        )
 
 
 def test_store_persons(tmpdir):
@@ -119,9 +153,10 @@ def test_store_persons(tmpdir):
         assert (
             file.read_text() == "["
             r'{"id": 3, "firstname": "S\u00e9bastien", "lastname": "Lesaint", '
-            '"created": "2024-04-05 12:41:58", "sex": null}, '
-            '{"id": 4, "firstname": "Max", "lastname": "Payne", "created": "2024-09-18 21:08:08", "sex": null}, '
-            '{"id": 5, "firstname": "Bob", "created": "2024-09-18 21:08:08", "sex": "F"}'
+            '"created": "2024-04-05 12:41:58", "sex": null, "tags": []}, '
+            '{"id": 4, "firstname": "Max", "lastname": "Payne", "created": "2024-09-18 21:08:08", "sex": null, '
+            '"tags": []}, '
+            '{"id": 5, "firstname": "Bob", "created": "2024-09-18 21:08:08", "sex": "F", "tags": []}'
             "]"
         )
 

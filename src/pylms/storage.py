@@ -27,12 +27,14 @@ class PersonEncoder(json.JSONEncoder):
                     "lastname": o.lastname,
                     "created": str(o.created),
                     "sex": _from_sex(o.sex),
+                    "tags": o.tags,
                 }
             return {
                 "id": o.person_id,
                 "firstname": o.firstname,
                 "created": str(o.created),
                 "sex": _from_sex(o.sex),
+                "tags": o.tags,
             }
         # Let the base class default method raise the TypeError
         return super().default(o)
@@ -58,14 +60,20 @@ def to_person(o: dict) -> Person:
 
     sex: Sex = _to_sex(o)
     if "lastname" in o:
-        return Person(
+        res = Person(
             person_id=o["id"],
             firstname=o["firstname"],
             lastname=o["lastname"],
             created=datetime.fromisoformat(o["created"]),
             sex=sex,
         )
-    return Person(person_id=o["id"], firstname=o["firstname"], created=datetime.fromisoformat(o["created"]), sex=sex)
+    else:
+        res = Person(person_id=o["id"], firstname=o["firstname"], created=datetime.fromisoformat(o["created"]), sex=sex)
+
+    if "tags" in o:
+        res.tags = o["tags"]
+
+    return res
 
 
 def store_persons(persons: list[Person]) -> None:

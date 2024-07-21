@@ -42,6 +42,7 @@ class Person:
         self.firstname = firstname
         self.lastname = lastname
         self._sex = None if sex is None else Person._check_sex(sex)
+        self._tags: list[str] = []
         self.created = Person._check_or_set_created(created)
 
     @staticmethod
@@ -67,6 +68,22 @@ class Person:
     @sex.setter
     def sex(self, sex: Sex) -> None:
         self._sex = Person._check_sex(sex)
+
+    @staticmethod
+    def _ensure_strings(lst: list[any]) -> list[str]:
+        for s in lst:
+            if not isinstance(s, str):
+                raise ValueError("tag must be a str")
+
+        return lst
+
+    @property
+    def tags(self) -> list[str]:
+        return self._tags
+
+    @tags.setter
+    def tags(self, tags: list[str]):
+        self._tags = Person._ensure_strings(tags)
 
     def __eq__(self, other: any) -> bool:
         if isinstance(other, Person):

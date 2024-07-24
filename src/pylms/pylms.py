@@ -104,13 +104,13 @@ def _search_persons(pattern: str) -> list[Person]:
     return res
 
 
-def _search_match_name(pattern, person):
+def _search_match_name(pattern: str, person: Person) -> bool:
     if person.lastname:
         return pattern in person.lastname.lower() or pattern in person.firstname.lower()
     return pattern in person.firstname.lower()
 
 
-def _search_match_tag(pattern, person):
+def _search_match_tag(pattern: str, person: Person) -> bool:
     if person.tags:
         for tag in person.tags:
             if pattern in tag.lower():

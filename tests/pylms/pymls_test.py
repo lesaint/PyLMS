@@ -302,59 +302,91 @@ class TestLinkPerson:
         mock_storage.store_relationships([ExpectedRelationship()])
 
 
-class TestSearchPersonByWord:
-
-    @patch("pylms.pylms.logger")
-    @patch("pylms.pylms._search_persons")
-    def test_only_info_log_if_no_match(self, mock_search_persons, mock_logger):
-        mock_search_persons.return_value = []
-        pattern = "p"
-
-        search_persons(pattern)
-
-        mock_search_persons.assert_called_once_with(pattern)
-        mock_logger.info.assert_called_once_with(f'No match for "{pattern}".')
-
-    @patch("pylms.pylms.ios")
-    @patch("pylms.pylms.storage")
-    @patch("pylms.pylms.logger")
-    @patch("pylms.pylms._search_persons")
-    def test_list_persons_limited_to_the_person_matching_pattern(
-        self,
-        mock_search_persons,
-        mock_logger,
-        mock_storage,
-        mock_ios,
-    ):
-        rls = [
-            Relationship(person_1, person_2, relationship_definition_1),
-            Relationship(person_2, person_3, relationship_definition_1),
-            Relationship(person_2, person_4, relationship_definition_1),
-            Relationship(person_3, person_4, relationship_definition_1),
-            Relationship(person_3, person_1, relationship_definition_1),
-            Relationship(person_4, person_1, relationship_definition_1),
-        ]
-        persons = [person_1, person_2, person_3, person_4]
-
-        mock_search_persons.return_value = [person_1]
-        mock_storage.read_persons.return_value = persons
-        mock_storage.read_relationships.return_value = rls
-        pattern = "p"
-
-        search_persons(pattern)
-
-        mock_search_persons.assert_called_once_with(pattern)
-        assert mock_logger.call_count == 0
-        mock_storage.read_persons.assert_called_once_with()
-        mock_storage.read_relationships.assert_called_once_with(persons)
-        mock_ios.list_persons.assert_called_once_with([(person_1, [rls[0], rls[4], rls[5]])])
-
-
-class TestSearchPersonByRelationship:
-    john = Person(person_id=1, firstname="John")
+@patch("pylms.pylms.ios")
+@patch("pylms.pylms.storage")
+@patch("pylms.pylms.logger")
+class TestSearchPersonByFirstNameLastName:
+    john = Person(person_id=1, firstname="John", lastname="Doe")
     peter = Person(person_id=2, firstname="Peter")
     emma = Person(person_id=3, firstname="Emma", sex=FEMALE)
-    carine = Person(person_id=4, firstname="Carine")
+    carine = Person(person_id=4, firstname="Cârine")
+    tom = Person(person_id=5, firstname="Tom", sex=MALE)
+    bill = Person(person_id=6, firstname="Bill", lastname="Beurè")
+    dona = Person(person_id=7, firstname="Dona", sex=FEMALE)
+    elmer = Person(person_id=8, firstname="Elmer", sex=MALE)
+    princess = Person(person_id=9, firstname="Princess", sex=FEMALE)
+    persons = [john, peter, emma, carine, tom, bill, dona, elmer, princess]
+    relationships = []
+
+    @mark.parametrize(
+        ("search_request", "expected"),
+        [
+            ("John", [(john, [])]),
+            ("joHn", [(john, [])]),
+            ("Doe", [(john, [])]),
+            ("dOe", [(john, [])]),
+        ],
+    )
+    def test_search_is_case_insensitive(self, mock_logger, mock_storage, mock_ios, search_request, expected):
+        mock_storage.read_persons.return_value = self.persons
+        mock_storage.read_relationships.return_value = self.relationships
+
+        search_persons(search_request)
+
+        assert mock_logger.info.call_count == 0
+        mock_ios.list_persons.assert_called_once_with(expected)
+
+    @mark.parametrize(
+        ("search_request", "expected"),
+        [
+            ("eter", [(peter, [])]),
+            ("em", [(emma, [])]),
+            (
+                "m",
+                [(emma, []), (tom, []), (elmer, [])],
+            ),
+        ],
+    )
+    def test_search_is_partial(self, mock_logger, mock_storage, mock_ios, search_request, expected):
+        mock_storage.read_persons.return_value = self.persons
+        mock_storage.read_relationships.return_value = self.relationships
+
+        search_persons(search_request)
+
+        assert mock_logger.info.call_count == 0
+        mock_ios.list_persons.assert_called_once_with(expected)
+
+    @mark.parametrize(
+        ("search_request", "expected"),
+        [
+            ("Cârine", [(carine, [])]),
+            ("Carine", []),
+            ("Beurè", [(bill, [])]),
+            ("Beure", []),
+        ],
+    )
+    def test_is_accent_sensitive(self, mock_logger, mock_storage, mock_ios, search_request, expected):
+        mock_storage.read_persons.return_value = self.persons
+        mock_storage.read_relationships.return_value = self.relationships
+
+        search_persons(search_request)
+
+        if not expected:
+            mock_logger.info.assert_called_once_with(f'No match for "{search_request}".')
+            assert mock_ios.list_persons.call_count == 0
+        else:
+            assert mock_logger.info.call_count == 0
+            mock_ios.list_persons.assert_called_once_with(expected)
+
+
+@patch("pylms.pylms.ios")
+@patch("pylms.pylms.storage")
+@patch("pylms.pylms.logger")
+class TestSearchPersonByRelationship:
+    john = Person(person_id=1, firstname="John", lastname="Doe")
+    peter = Person(person_id=2, firstname="Peter")
+    emma = Person(person_id=3, firstname="Emma", sex=FEMALE)
+    carine = Person(person_id=4, firstname="Cârine")
     tom = Person(person_id=5, firstname="Tom", sex=MALE)
     bill = Person(person_id=6, firstname="Bill")
     dona = Person(person_id=7, firstname="Dona", sex=FEMALE)
@@ -371,8 +403,6 @@ class TestSearchPersonByRelationship:
         Relationship(person_left=princess, person_right=bill, definition=parent_enfant),
     ]
 
-    @patch("pylms.pylms.ios")
-    @patch("pylms.pylms.storage")
     @mark.parametrize(
         ("search_request", "expected"),
         [
@@ -391,40 +421,28 @@ class TestSearchPersonByRelationship:
             ),
         ],
     )
-    def test_search_successful(self, mock_storage, mock_ios, search_request, expected):
+    def test_search_by_relationship_successful(self, mock_logger, mock_storage, mock_ios, search_request, expected):
         mock_storage.read_persons.return_value = self.persons
         mock_storage.read_relationships.return_value = self.relationships
 
         search_persons(search_request)
 
-        # duplicate calls because: 1 for finding the persons, 1 to display them.
-        # Could be only one call but this optimization is deemed minor
-        mock_storage.read_persons.assert_has_calls([call(), call()])
-        mock_storage.read_relationships.assert_has_calls([call(self.persons), call(self.persons)])
+        assert mock_logger.info.call_count == 0
         mock_ios.list_persons.assert_called_once_with(expected)
 
-    @patch("pylms.pylms.ios")
-    @patch("pylms.pylms.logger")
-    @patch("pylms.pylms.storage")
     @mark.parametrize(
         "search_request",
         ["père de emma", "mère de peter", "parent de carine", "fils de Elmer", "fils de Dona", "fils de princess"],
     )
-    def test_no_matching_relationship(self, mock_storage, mock_logger, mock_ios, search_request):
+    def test_no_matching_relationship(self, mock_logger, mock_storage, mock_ios, search_request):
         mock_storage.read_persons.return_value = self.persons
         mock_storage.read_relationships.return_value = self.relationships
 
         search_persons(search_request)
 
-        # 1 call to find the persons
-        mock_storage.read_persons.assert_called_once_with()
-        mock_storage.read_relationships.assert_called_once_with(self.persons)
         mock_logger.info.assert_called_once_with(f'No match for "{search_request}".')
         assert mock_ios.list_persons.call_count == 0
 
-    @patch("pylms.pylms.ios")
-    @patch("pylms.pylms.logger")
-    @patch("pylms.pylms.storage")
     @mark.parametrize(
         "search_request",
         [
@@ -432,14 +450,11 @@ class TestSearchPersonByRelationship:
             "mere de bill",  # alias is not yet matched regardless of accentuated chars
         ],
     )
-    def test_no_relationship_found_in_request(self, mock_storage, mock_logger, mock_ios, search_request):
+    def test_no_relationship_found_in_request(self, mock_logger, mock_storage, mock_ios, search_request):
         mock_storage.read_persons.return_value = self.persons
         mock_storage.read_relationships.return_value = self.relationships
 
         search_persons(search_request)
 
-        # 1 call to find the persons
-        mock_storage.read_persons.assert_called_once_with()
-        assert mock_storage.read_relationships.call_count == 0
         mock_logger.info.assert_called_once_with(f'No match for "{search_request}".')
         assert mock_ios.list_persons.call_count == 0

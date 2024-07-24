@@ -152,6 +152,8 @@ class TestEventListener(unittest.TestCase):
 class TestIOs(unittest.TestCase):
     person1 = Person(person_id=12, firstname="Boo", lastname="Bip", created=datetime(2024, 4, 5, 12, 41, 9))
     person2 = Person(person_id=5, firstname="Acme")
+    person_with_tags = Person(person_id=119, firstname="Mat", created=datetime(2024, 7, 24, 15, 35, 41))
+    person_with_tags.tags = ["toto", "a trooper"]
     rl_definition = RelationshipDefinition(name="related")
 
     def setUp(self):
@@ -177,10 +179,20 @@ class TestIOs(unittest.TestCase):
 
         assert self._get_textarea_text() == "(12)  Boo Bip (2024-4-5 12-41-9)"
 
+    def test_show_person_with_tags_prints_to_textarea(self):
+        self._under_test.show_person(self.person_with_tags)
+
+        assert self._get_textarea_text() == "(119)  Mat (2024-7-24 15-35-41)\n     toto, a trooper"
+
     def test_list_persons_prints_to_textarea(self):
         self._under_test.list_persons([(self.person1, [Relationship(self.person1, self.person2, self.rl_definition)])])
 
         assert self._get_textarea_text() == "(12)  Boo Bip (2024-4-5 12-41-9)\n    -> related (5) Acme"
+
+    def test_list_persons_prints_tags_to_textarea(self):
+        self._under_test.list_persons([(self.person_with_tags, [])])
+
+        assert self._get_textarea_text() == "(119)  Mat (2024-7-24 15-35-41)\n     toto, a trooper"
 
     def test_select_person_not_supported(self):
         with pytest.raises(RuntimeError, match="select_person should not have been called"):

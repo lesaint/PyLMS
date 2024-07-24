@@ -96,6 +96,8 @@ class GuiIOs(IOs):
             person,
             f"({created.year}-{created.month}-{created.day} {created.hour}-{created.minute}-{created.second})",
         )
+        if person.tags:
+            self.gui_manager.write_line("     " + ", ".join(person.tags))
 
     def list_persons(self, resolved_persons: list[(Person, list[Relationship])]) -> None:
         for person, rls in sorted(resolved_persons, key=lambda t: t[0].person_id):

@@ -15,6 +15,8 @@ class CLI(IOs, EventListener):
             person,
             f"({created.year}-{created.month}-{created.day} {created.hour}-{created.minute}-{created.second})",
         )
+        if person.tags:
+            print("     ", *person.tags)
 
     @staticmethod
     def _show_relationship_of(*, relationship: Relationship, person: Person) -> None:
@@ -30,14 +32,20 @@ class CLI(IOs, EventListener):
         else:
             print("No Person registered yet.")
 
-    def _interactive_hit_enter(self):
+    def _interactive_hit_some_keys(self, validate_input, message) -> str:
         while True:
             s = self._input_or_exit_pylms()
 
-            if len(s) == 0:
-                return
+            if validate_input(s):
+                return s
 
-            print("Just hit ENTER")
+            print(message)
+
+    def _interactive_hit_enter(self):
+        def is_enter(s: str) -> bool:
+            return len(s) == 0
+
+        return self._interactive_hit_some_keys(validate_input=is_enter, message="Just hit ENTER")
 
     def _input_or_exit_pylms(self):
         try:
@@ -76,19 +84,44 @@ class CLI(IOs, EventListener):
         # should not happen
         raise RuntimeError(f"id {person_id} does not exist in list of Persons")
 
+    def _input_select_update_tags(self):
+        def is_enter_or_uppercase_t(text: str) -> bool:
+            return text == "T" or text == "t" or len(text) == 0
+
+        s = self._interactive_hit_some_keys(
+            validate_input=is_enter_or_uppercase_t, message="Just hit ENTER or T (or t)"
+        )
+        return len(s) == 1
+
     def update_person(self, person_to_update: Person) -> Person:
-        print("Input new first name and last name to update:")
         self.show_person(person_to_update)
+        print("Hit ENTER to update first name and last name, T (or t) to update tags")
         self._print_how_to_interrupt()
 
-        firstname: str
-        lastname: str
-        firstname, lastname = self._get_person_details()
+        if self._input_select_update_tags():
+            print("Input new tags, separated by comma:")
+            self._print_how_to_interrupt()
 
-        person_to_update.firstname = firstname
-        person_to_update.lastname = lastname
+            text = self._input_or_exit_pylms()
 
-        return person_to_update
+            tags = text.split(",")
+            tags = [t.strip() for t in tags]
+
+            person_to_update.tags = tags
+
+            return person_to_update
+        else:
+            print("Input new first name and last name to update:")
+            self._print_how_to_interrupt()
+
+            firstname: str
+            lastname: str
+            firstname, lastname = self._get_person_details()
+
+            person_to_update.firstname = firstname
+            person_to_update.lastname = lastname
+
+            return person_to_update
 
     @staticmethod
     def _print_how_to_interrupt():

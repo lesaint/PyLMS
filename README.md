@@ -52,6 +52,8 @@ $ pylms # list all persons (fist name, last name, sex and id) and their relation
 $ pylms john # search a person (or persons) which first name and/or last name contain 'john'
 $ pylms create John Doe # create a person with first name 'John' and last name 'Doe'
 $ pylms create John # create a person with first name 'John' 
+$ pylms update John # to interactively set the first/last name or the tags of the person matching 'John'
+$ pylms update John Doe # to interactively set the first/last name or the tags of the person matching 'John Doe'
 $ pylms link John Doe père de Tony Doe # create a relationship between person matching 'John Doe' and another person matching 'Tony Doe'
 $ pylms link John père de Tony # same, only searching with 'John' and 'Tony'
 $ pylms delete John # delete the person matching 'John'

@@ -104,12 +104,23 @@ def _search_persons(pattern: str) -> list[Person]:
     return res
 
 
-def _search_match(pattern: str, person: Person) -> bool:
-    pattern = pattern.lower()
+def _search_match_name(pattern, person):
     if person.lastname:
         return pattern in person.lastname.lower() or pattern in person.firstname.lower()
-
     return pattern in person.firstname.lower()
+
+
+def _search_match_tag(pattern, person):
+    if person.tags:
+        for tag in person.tags:
+            if pattern in tag.lower():
+                return True
+    return False
+
+
+def _search_match(pattern: str, person: Person) -> bool:
+    pattern = pattern.lower()
+    return _search_match_name(pattern, person) or _search_match_tag(pattern, person)
 
 
 def store_person(firstname: str) -> None:

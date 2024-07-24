@@ -90,15 +90,18 @@ class TestInteractiveHitEnter:
 class TestUpdatePerson:
     @patch("builtins.print")
     @patch.object(under_test, "_get_person_details")
+    @patch.object(under_test, "_input_select_update_tags")
     @patch.object(under_test, "show_person")
-    def test_top_level(self, mock_show_person, mock_get_person_details, mock_print):
+    def test_top_level(self, mock_show_person, mock_update_tags, mock_get_person_details, mock_print):
         person = Person(1, "John", "Doe")
         mock_get_person_details.return_value = ("foo", "bar")
+        mock_update_tags.return_value = False
 
         res = under_test.update_person(person)
 
         assert res.firstname == "foo"
         assert res.lastname == "bar"
+        assert not res.tags
 
         mock_show_person.assert_called_once_with(person)
         mock_get_person_details.assert_called_once_with()
@@ -115,14 +118,16 @@ class TestUpdatePerson:
     def test_get_person_details_one_word(self, mock_show_person, mock_input, mock_print):
         person = Person(1, "John", "Doe")
 
-        mock_input.return_value = "foo"
+        mock_input.side_effect = ["", "foo"]
 
         res = under_test.update_person(person)
 
         assert res.firstname == "foo"
         assert res.lastname is None
-        mock_input.assert_called_once_with()
-        assert mock_print.call_count == 2
+        assert not res.tags
+
+        mock_input.assert_has_calls([call(), call()])
+        assert mock_print.call_count == 4
 
     @patch("builtins.print")
     @patch("builtins.input")
@@ -130,14 +135,16 @@ class TestUpdatePerson:
     def test_get_person_details_two_words(self, mock_show_person, mock_input, mock_print):
         person = Person(1, "John", "Doe")
 
-        mock_input.return_value = "foo bar"
+        mock_input.side_effect = ["", "foo bar"]
 
         res = under_test.update_person(person)
 
         assert res.firstname == "foo"
         assert res.lastname == "bar"
-        mock_input.assert_called_once_with()
-        assert mock_print.call_count == 2
+        assert not res.tags
+
+        mock_input.assert_has_calls([call(), call()])
+        assert mock_print.call_count == 4
 
     @patch("builtins.print")
     @patch("builtins.input")
@@ -145,13 +152,15 @@ class TestUpdatePerson:
     def test_get_person_three_words(self, mock_show_person, mock_input, mock_print):
         person = Person(1, "John", "Doe")
 
-        mock_input.side_effect = ["foo bar acme", "foo bar"]
+        mock_input.side_effect = ["", "foo bar acme", "foo bar"]
 
         res = under_test.update_person(person)
 
         assert res.firstname == "foo"
         assert res.lastname == "bar"
-        assert mock_input.call_count == 2
+        assert not res.tags
+
+        assert mock_input.call_count == 3
         mock_print.assert_has_calls(
             [
                 call("Input new first name and last name to update:"),
@@ -159,6 +168,89 @@ class TestUpdatePerson:
                 call("Too many words."),
             ]
         )
+
+
+@patch("builtins.print")
+@patch("builtins.input")
+@patch.object(under_test, "_input_select_update_tags")
+@patch.object(under_test, "show_person")
+@mark.parametrize("existing_tags", [[], ["donut"], ["acme", "pizza"]])
+class TestUpdateTags:
+    def test_set_one_tag(self, mock_show_person, mock_update_tags, mock_input, mock_print, existing_tags):
+        person = Person(1, "John", "Doe")
+        person.tags = existing_tags
+        mock_update_tags.return_value = True
+        mock_input.return_value = "toto"
+
+        res = under_test.update_person(person)
+
+        assert res.tags == ["toto"]
+
+    def test_set_two_tags(self, mock_show_person, mock_update_tags, mock_input, mock_print, existing_tags):
+        person = Person(1, "John", "Doe")
+        person.tags = existing_tags
+        mock_update_tags.return_value = True
+        mock_input.return_value = "toto, tutu"
+
+        res = under_test.update_person(person)
+
+        assert res.tags == ["toto", "tutu"]
+
+    def test_set_multi_word_tag(self, mock_show_person, mock_update_tags, mock_input, mock_print, existing_tags):
+        person = Person(1, "John", "Doe")
+        person.tags = existing_tags
+        mock_update_tags.return_value = True
+        mock_input.return_value = "toto, tutu titi, tromp"
+
+        res = under_test.update_person(person)
+
+        assert res.tags == ["toto", "tutu titi", "tromp"]
+
+
+@patch("builtins.print")
+@patch("builtins.input")
+@patch.object(under_test, "show_person")
+@mark.parametrize("t_input", ["t", "T"])
+class TestUpdateTagInputAndPrint:
+    def test_t_of_any_case_to_update_tags(self, mock_show_person, mock_input, mock_print, t_input):
+        person = Person(1, "John", "Doe")
+        mock_input.side_effect = [t_input, "toto"]
+
+        res = under_test.update_person(person)
+
+        assert res.tags == ["toto"]
+
+        assert mock_input.call_count == 2
+        mock_print.assert_has_calls(
+            [
+                call("Hit ENTER to update first name and last name, T (or t) to update tags"),
+                call(CTRL_C_TO_EXIT),
+                call("Input new tags, separated by comma:"),
+                call(CTRL_C_TO_EXIT),
+            ]
+        )
+        assert mock_print.call_count == 4
+
+    def test_loop_until_valid_input(self, mock_show_person, mock_input, mock_print, t_input):
+        person = Person(1, "John", "Doe")
+        mock_input.side_effect = ["R", "capito", t_input, "titi"]
+
+        res = under_test.update_person(person)
+
+        assert res.tags == ["titi"]
+
+        assert mock_input.call_count == 4
+        mock_print.assert_has_calls(
+            [
+                call("Hit ENTER to update first name and last name, T (or t) to update tags"),
+                call(CTRL_C_TO_EXIT),
+                call("Just hit ENTER or T (or t)"),
+                call("Just hit ENTER or T (or t)"),
+                call("Input new tags, separated by comma:"),
+                call(CTRL_C_TO_EXIT),
+            ]
+        )
+        assert mock_print.call_count == 6
 
 
 class TestDeletingRelationship:

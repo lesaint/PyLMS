@@ -458,3 +458,55 @@ class TestSearchPersonByRelationship:
 
         mock_logger.info.assert_called_once_with(f'No match for "{search_request}".')
         assert mock_ios.list_persons.call_count == 0
+
+
+@patch("pylms.pylms.ios")
+@patch("pylms.pylms.storage")
+@patch("pylms.pylms.logger")
+class TestSearchPersonByTags:
+    john = Person(person_id=1, firstname="John")
+    john.tags = ["toto"]
+    peter = Person(person_id=2, firstname="Peter")
+    peter.tags = ["tutu", "TOTO", "donut rouge"]
+    emma = Person(person_id=3, firstname="Emma", sex=FEMALE)
+    emma.tags = ["Avé l'Accent!"]
+    carine = Person(person_id=4, firstname="Cârine")
+    persons = [john, peter, emma, carine]
+    relationships = []
+
+    @mark.parametrize(
+        ("search_request", "expected"),
+        [
+            ("tutu", [(peter, [])]),
+            ("TuTU", [(peter, [])]),
+            ("toto", [(john, []), (peter, [])]),
+        ],
+    )
+    def test_search_is_case_insensitive(self, mock_logger, mock_storage, mock_ios, search_request, expected):
+        mock_storage.read_persons.return_value = self.persons
+        mock_storage.read_relationships.return_value = self.relationships
+
+        search_persons(search_request)
+
+        assert mock_logger.info.call_count == 0
+        mock_ios.list_persons.assert_called_once_with(expected)
+
+    @mark.parametrize(
+        ("search_request", "expected"),
+        [
+            ("Avé", [(emma, [])]),
+            ("Ave", []),
+        ],
+    )
+    def test_search_is_accent_sensitive(self, mock_logger, mock_storage, mock_ios, search_request, expected):
+        mock_storage.read_persons.return_value = self.persons
+        mock_storage.read_relationships.return_value = self.relationships
+
+        search_persons(search_request)
+
+        if not expected:
+            mock_logger.info.assert_called_once_with(f'No match for "{search_request}".')
+            assert mock_ios.list_persons.call_count == 0
+        else:
+            assert mock_logger.info.call_count == 0
+            mock_ios.list_persons.assert_called_once_with(expected)

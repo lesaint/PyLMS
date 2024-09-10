@@ -1,10 +1,14 @@
-name: LMS CI
+name: PyLMS CI
 on:
   push:
     branches:
       - main
+    paths:
+      - python/**
   pull_request:
     types: [opened, synchronize, reopened]
+    paths:
+      - python/**
 permissions:
   contents: read
 jobs:

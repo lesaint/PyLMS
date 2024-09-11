@@ -19,9 +19,20 @@ android {
             useSupportLibrary = true
         }
     }
+    signingConfigs {
+        create("release") {
+            // You need to specify either an absolute path or include the
+            // keystore file in the same directory as the build.gradle file.
+            storeFile = file("keystore.jks")
+            storePassword = "QALyNCCMu0O3"
+            keyAlias = "upload"
+            keyPassword = "THh2IyfWDFDz"
+        }
+    }
 
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

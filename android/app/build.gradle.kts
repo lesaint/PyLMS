@@ -18,6 +18,8 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        // source: https://stackoverflow.com/a/28250257
+        setProperty("archivesBaseName", "AndroLMS-$versionName")
     }
     signingConfigs {
         create("release") {

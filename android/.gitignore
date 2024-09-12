@@ -13,3 +13,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# no Keystore should go to version control
+*.jks
+

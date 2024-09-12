@@ -21,6 +21,15 @@ jobs:
       pull-requests: write 
     runs-on: ubuntu-latest
     steps:
+    - name: Decode Keystore
+      env:
+        ENCODED_STRING: ${{ secrets.SIGNING_KEYSTORE }}
+      run: |
+        TMP_KEYSTORE_FILE_PATH="${RUNNER_TEMP}"/androlms
+        mkdir "${TMP_KEYSTORE_FILE_PATH}"
+        echo "$ENCODED_STRING" | base64 --decode --ignore-garbage > "${TMP_KEYSTORE_FILE_PATH}/signing_keystore.jks"
+    - name: Show Keystore checksum
+      run: md5sum "${RUNNER_TEMP}/androlms/signing_keystore.jks"
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
@@ -33,7 +42,10 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
     - name: Build with Gradle
-      run: ./gradlew :app:assembleDebug :app:assembleRelease --no-daemon
+      env:
+        SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+        SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+      run: ./gradlew build --no-daemon
       working-directory: android
     - name: APKs upload
       id: apk-upload-step

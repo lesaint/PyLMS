@@ -1,3 +1,5 @@
+import java.io.FileNotFoundException
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -22,13 +24,31 @@ android {
         setProperty("archivesBaseName", "AndroLMS-$versionName")
     }
     signingConfigs {
-        create("release") {
-            // You need to specify either an absolute path or include the
-            // keystore file in the same directory as the build.gradle file.
-            storeFile = file("keystore.jks")
-            storePassword = "QALyNCCMu0O3"
-            keyAlias = "upload"
-            keyPassword = "THh2IyfWDFDz"
+        register("release") {
+            keyAlias = "release"
+            storePassword = System.getenv("SIGNING_STORE_PASSWORD")
+            keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
+            // inspiration: https://proandroiddev.com/how-to-securely-build-and-sign-your-android-app-with-github-actions-ad5323452ce
+            val runnerTemp = System.getenv("RUNNER_TEMP")
+            if (runnerTemp == null) {
+                storeFile = file("signing_keystore.jks")
+            } else {
+                // Gradle executing within a Github Action
+                // Keystore is expected to be created from a Github repository secret as a temporary
+                // file in the Runner's temp directory
+                // keystore and key password are expected to be provided as Environment variables
+                // and both are mandatory
+                val keystoreDir = File(runnerTemp, "androlms")
+                val keystoreFile = File(keystoreDir, "signing_keystore.jks")
+
+                if (!keystoreDir.exists()) {
+                    throw FileNotFoundException("${keystoreDir.absolutePath} not found")
+                }
+                if (!keystoreFile.exists()) {
+                    throw FileNotFoundException("${keystoreFile.absolutePath} not found")
+                }
+                storeFile = keystoreFile
+            }
         }
     }
 

@@ -1,4 +1,7 @@
 name: AndroLMS CI
+# https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/store-information-in-variables
+env:
+  UPLOAD_RETENTION: 7
 on:
   push:
     branches:
@@ -40,8 +43,14 @@ jobs:
         path: |
           android/app/build/outputs/apk/debug/AndroLMS-*.apk 
           android/app/build/outputs/apk/release/AndroLMS-*.apk
+        retention-days: ${{ env.UPLOAD_RETENTION }}
+    # https://stackoverflow.com/a/60942437 <-- inspiration, but deprecated
+    # https://github.blog/changelog/2022-10-11-github-actions-deprecating-save-state-and-set-output-commands/#examples <-- up to date
+    - name: Compute expiration date
+      id: expiration-date
+      run: echo "expiration_date=$(date --date ${UPLOAD_RETENTION}d +%Y-%m-%d)" >> $GITHUB_OUTPUT
     - uses: thollander/actions-comment-pull-request@v2
       with:
-        message: Latest APKs available from ${{ steps.apk-upload-step.outputs.artifact-url }}
+        message: Latest AndroLMS artifacts available from ${{ steps.apk-upload-step.outputs.artifact-url }} until ${{ steps.expiration-date.outputs.expiration_date }}.
         comment_tag: apk-upload
         mode: recreate

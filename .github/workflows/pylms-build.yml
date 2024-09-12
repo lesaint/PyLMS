@@ -1,4 +1,7 @@
 name: PyLMS CI
+# https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/store-information-in-variables
+env:
+  UPLOAD_RETENTION: 7
 on:
   push:
     branches:
@@ -9,6 +12,7 @@ on:
     types: [opened, synchronize, reopened]
     paths:
       - python/**
+# https://github.com/thollander/actions-comment-pull-request?tab=readme-ov-file#permissions
 permissions:
   contents: read
 jobs:
@@ -38,6 +42,8 @@ jobs:
       with:
         projectBaseDir: python/
   python-build:
+    permissions: 
+      pull-requests: write 
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -50,4 +56,22 @@ jobs:
       with:
         run: make build
         working-directory: python
-
+    - name: APKs upload
+      id: wheel-upload-step
+      uses: actions/upload-artifact@v4
+      with:
+        name: PyLMS_artifacts
+        path: |
+          python/dist/PyLMS-*.whl
+          python/dist/pylms-*.tar.gz
+        retention-days: ${{ env.UPLOAD_RETENTION }}
+    # https://stackoverflow.com/a/60942437 <-- inspiration, but deprecated
+    # https://github.blog/changelog/2022-10-11-github-actions-deprecating-save-state-and-set-output-commands/#examples <-- up to date
+    - name: Compute expiration date
+      id: expiration-date
+      run: echo "expiration_date=$(date --date ${UPLOAD_RETENTION}d +%Y-%m-%d)" >> $GITHUB_OUTPUT
+    - uses: thollander/actions-comment-pull-request@v2
+      with:
+        message: Latest PyLMS artifacts available from ${{ steps.wheel-upload-step.outputs.artifact-url }} until ${{ steps.expiration-date.outputs.expiration_date }}.
+        comment_tag: wheel-upload
+        mode: recreate

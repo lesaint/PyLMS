@@ -66,6 +66,7 @@ jobs:
       id: expiration-date
       run: echo "expiration_date=$(date --date ${UPLOAD_RETENTION}d +%Y-%m-%d)" >> $GITHUB_OUTPUT
     - uses: thollander/actions-comment-pull-request@v2
+      if: ${{ github.event_name == 'pull_request' }}
       with:
         message: Latest AndroLMS artifacts available from ${{ steps.apk-upload-step.outputs.artifact-url }} until ${{ steps.expiration-date.outputs.expiration_date }}.
         comment_tag: apk-upload

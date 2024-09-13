@@ -7,11 +7,13 @@ on:
     branches:
       - main
     paths:
-      - android/**
+      - "android/**"
+      - "!android/README.md"
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
-      - android/**
+      - "android/**"
+      - "!android/README.md"
 # https://github.com/thollander/actions-comment-pull-request?tab=readme-ov-file#permissions
 permissions:
   contents: read

@@ -7,11 +7,13 @@ on:
     branches:
       - main
     paths:
-      - python/**
+      - "python/**"
+      - "!python/README.md"
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
-      - python/**
+      - "python/**"
+      - "!python/README.md"
 # https://github.com/thollander/actions-comment-pull-request?tab=readme-ov-file#permissions
 permissions:
   contents: read

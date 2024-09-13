@@ -13,3 +13,12 @@ sonar {
         property("sonar.sourceEncoding", "UTF-8")
     }
 }
+
+// add a dependency of sonar task onto any task lint of any subproject
+// use afterEvaluate otherwise the task set is empty
+val sonarTask = tasks.getByName("sonar")
+subprojects {
+    afterEvaluate {
+        project.tasks.filter { it.name == "lint" }.forEach{ sonarTask.dependsOn(it)}
+    }
+}

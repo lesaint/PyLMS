@@ -41,11 +41,13 @@ jobs:
         cache: 'gradle'
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
-    - name: Build with Gradle
+    - name: Build with Gradle and scan with SonarCloud
       env:
         SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
         SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
-      run: ./gradlew build --no-daemon
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      run: ./gradlew build sonar --no-daemon
       working-directory: android
     - name: APKs upload
       id: apk-upload-step
